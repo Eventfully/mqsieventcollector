@@ -16,8 +16,7 @@ ext {
 
     ext {
         camelVersion = '2.15-SNAPSHOT'
-        //MQ_JAVA_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/lib'
-        MQ_JAVA_LIB_DIR = 'C:/var/wmqlib'
+        MQ_JAVA_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/lib'
     }
 }
 
