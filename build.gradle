@@ -1,0 +1,61 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'io.spring.gradle:dependency-management-plugin:0.3.0.RELEASE'
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.0.RELEASE")
+    }
+}
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'groovy'
+apply plugin: 'spring-boot'
+
+ext {
+
+    ext {
+        camelVersion = '2.15-SNAPSHOT'
+        //MQ_JAVA_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/lib'
+        MQ_JAVA_LIB_DIR = 'C:/var/wmqlib'
+    }
+}
+
+jar {
+    baseName = 'mqsieventcollector'
+    version =  '0.0.1-SNAPSHOT'
+}
+
+repositories {
+    mavenCentral()
+    maven {	url "https://repository.apache.org/content/repositories/snapshots/" }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'io.spring.platform:platform-bom:1.1.0.RELEASE'
+    }
+}
+
+dependencies {
+    compile "org.codehaus.groovy:groovy-all"
+    compile("org.springframework.boot:spring-boot-starter") {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+    compile("org.springframework.boot:spring-boot-starter-log4j")
+    compile "org.apache.camel:camel-spring-boot:$camelVersion"
+    compile "org.apache.camel:camel-groovy:$camelVersion"
+    compile "org.apache.camel:camel-jms:$camelVersion"
+
+    //WMQ
+    compile fileTree(dir: MQ_JAVA_LIB_DIR, include: '*.jar')
+}
+
+configurations {
+    //all*.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+   // all*.exclude module: 'commons-logging' // we use slf4j instead
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.2.1'
+}
