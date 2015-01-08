@@ -16,24 +16,21 @@ class EventConsumerRoute extends RouteBuilder {
                 .process { Exchange ex ->
 
             Message message = ex.in
-            String xmlString = message.body
-            def event = new XmlParser(false, false).parseText(xmlString)
+
+            def event = new XmlParser(false, false).parseText(message.body)
             NodeList bitStream = event."wmb:bitstreamData"."wmb:bitstream"
             byte[] decodedBitStream = bitStream.text().decodeBase64()
-            message.setBody(decodedBitStream)
+            message.body = decodedBitStream
 
             String uniqueFlowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:uniqueFlowName".text()
-
             String eventName = event."wmb:eventPointData"."wmb:eventData"."wmb:eventIdentity"."@wmb:eventName".text()
             String creationTime = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:creationTime".text()
             String creationDate = creationTime?.substring(0, 9).replace('-', '')
 
-            message.setHeader("uniqueFlowName", uniqueFlowName.replace('.', '/'))
-            message.setHeader("eventName", eventName)
-            message.setHeader("creationDate", creationDate)
-            message.setHeader("exchangeId", ex.exchangeId)
+            String fileName = "/${uniqueFlowName.replace('.', '/')}/${eventName}-${creationDate}-${ex.exchangeId}.rfh"
+            message.setHeader(Exchange.FILE_NAME, fileName)
 
-        }.setHeader(Exchange.FILE_NAME, simple('/${in.header.uniqueFlowName}/${in.header.eventName}-${in.header.creationDate}-${in.header.exchangeId}.rfh'))
-                .to("{{eventRoute.to}}")
+        }
+        .to("{{eventRoute.to}}")
     }
 }
