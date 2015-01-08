@@ -2,10 +2,7 @@ package org.eventfully.mqsi.event.collector.config
 
 import com.ibm.mq.jms.MQConnectionFactory
 import com.ibm.msg.client.wmq.WMQConstants
-import org.apache.camel.CamelContext
 import org.apache.camel.component.jms.JmsComponent
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -22,7 +19,7 @@ public class WmqConfiguration {
     int port = 1414
     int transportType = WMQConstants.WMQ_CM_CLIENT
 
-    @Bean(name =  "wmq")
+    @Bean(name = "wmq")
     JmsComponent wmq() {
         return JmsComponent.jmsComponent(wmqQcf())
     }
