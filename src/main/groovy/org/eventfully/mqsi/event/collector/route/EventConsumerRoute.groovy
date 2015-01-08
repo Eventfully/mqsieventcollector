@@ -1,21 +1,23 @@
 package org.eventfully.mqsi.event.collector.route
 
-import org.apache.camel.CamelContext
+import com.ibm.mq.jms.MQConnectionFactory
 import org.apache.camel.Exchange
 import org.apache.camel.builder.RouteBuilder
-import org.apache.camel.component.jms.JmsComponent
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
 @Component
 class EventConsumerRoute extends RouteBuilder {
 
+    @Autowired
+    MQConnectionFactory wmqConnectionFactory
+
     @Override
     void configure() throws Exception {
 
-        from("jms:TEST.IN?connectionFactory=wmq").process { Exchange ex ->
-            ex.in.body = "Hej hopp"
-        }.to("jms:TEST.OUT?connectionFactory=wmq");
+        from("{{eventRoute.from}}").routeId("{{eventRoute.id}}").process { Exchange ex ->
+            ex.in.body = "JMS says hi"
+        }.to("{{eventRoute.to}}");
 
     }
 }

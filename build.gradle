@@ -23,12 +23,12 @@ ext {
 
 jar {
     baseName = 'mqsieventcollector'
-    version =  '0.0.1-SNAPSHOT'
+    version = '0.0.1-SNAPSHOT'
 }
 
 repositories {
     mavenCentral()
-    maven {	url "https://repository.apache.org/content/repositories/snapshots/" }
+    maven { url "https://repository.apache.org/content/repositories/snapshots/" }
 }
 
 dependencyManagement {
@@ -38,22 +38,28 @@ dependencyManagement {
 }
 
 dependencies {
+
+    runtime("org.jolokia:jolokia-core")
+
     compile "org.codehaus.groovy:groovy-all"
-    compile("org.springframework.boot:spring-boot-starter") {
-        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
-    }
+    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "com.fasterxml.jackson.core:jackson-annotations"
+    compile "com.fasterxml.jackson.core:jackson-core"
+    compile "com.fasterxml.jackson.core:jackson-databind"
+    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile("org.springframework.boot:spring-boot-starter")
     compile("org.springframework.boot:spring-boot-starter-log4j")
     compile "org.apache.camel:camel-spring-boot:$camelVersion"
     compile "org.apache.camel:camel-groovy:$camelVersion"
     compile "org.apache.camel:camel-jms:$camelVersion"
-
     //WMQ
     compile fileTree(dir: MQ_JAVA_LIB_DIR, include: '*.jar')
 }
 
 configurations {
-    //all*.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
-   // all*.exclude module: 'commons-logging' // we use slf4j instead
+    all*.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    //all*.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+    // all*.exclude module: 'commons-logging' // we use slf4j instead
 }
 
 task wrapper(type: Wrapper) {
