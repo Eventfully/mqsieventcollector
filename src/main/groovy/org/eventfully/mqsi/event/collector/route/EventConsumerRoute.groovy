@@ -1,6 +1,7 @@
 package org.eventfully.mqsi.event.collector.route
 
 import org.apache.camel.Exchange
+import org.apache.camel.LoggingLevel
 import org.apache.camel.Message
 import org.apache.camel.builder.RouteBuilder
 import org.springframework.stereotype.Component
@@ -12,6 +13,7 @@ class EventConsumerRoute extends RouteBuilder {
     void configure() throws Exception {
 
         from("{{eventRoute.from}}").routeId("{{eventRoute.id}}")
+                .log( LoggingLevel.INFO, "Event received")
                 .convertBodyTo(String.class, "UTF-8")
                 .process { Exchange ex ->
 

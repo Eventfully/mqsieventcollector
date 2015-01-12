@@ -53,6 +53,11 @@ dependencies {
     compile "org.apache.camel:camel-jms:$camelVersion"
     //WMQ
     compile fileTree(dir: MQ_JAVA_LIB_DIR, include: '*.jar')
+
+    //test
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile "org.spockframework:spock-core"
+    testCompile 'org.spockframework:spock-spring:0.7-groovy-2.0'
 }
 
 configurations {
