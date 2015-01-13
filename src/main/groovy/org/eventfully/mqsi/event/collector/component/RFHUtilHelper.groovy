@@ -14,17 +14,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
 
 @Component
-@ConfigurationProperties(prefix = "resend")
 @Log4j
-class RFHUtilResender {
+class RFHUtilHelper {
 
-    String qmgr
-    String queue
-    String hostname
-    int port
-    String channel
-
-    public boolean resend(byte[] rawData) {
+    public MQMessage extract(byte[] rawData) {
 
         DataInput indata1 = new DataInputStream(new ByteArrayInputStream(rawData))
 
@@ -47,20 +40,7 @@ class RFHUtilResender {
         indata1.readFully(remaining)
         mqOutMessage.write(remaining)
 
-        Hashtable connProps = new Hashtable()
-        connProps.put(MQC.HOST_NAME_PROPERTY, hostname)
-        connProps.put(MQC.CHANNEL_PROPERTY, channel)
-        connProps.put(MQC.PORT_PROPERTY, port)
-
-        MQQueueManager queueManager = new MQQueueManager(qmgr, connProps)
-        MQQueue queue = queueManager.accessQueue(queue, MQConstants.MQOO_OUTPUT);
-
-        //  rfhFIS.close()
-        queue.put(mqOutMessage)
-        queue.close();
-        queueManager.disconnect()
-
-        return true;
+        return mqOutMessage;
 
     }
 

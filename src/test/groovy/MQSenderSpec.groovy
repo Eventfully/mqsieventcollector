@@ -1,17 +1,17 @@
 package org.eventfully.mqsi.event.collector.test
 
-import org.eventfully.mqsi.event.collector.component.RFHUtilResender
+import org.eventfully.mqsi.event.collector.component.RFHUtilHelper
 import spock.lang.Specification
 import spock.lang.Unroll
 
 class MQSenderSpec extends Specification {
 
-    RFHUtilResender resender
+    RFHUtilHelper resender
 
     def setup() {
         Properties applicationProperties = new Properties()
         applicationProperties.load(new FileReader("src/test/resources/application.properties"))
-        resender = new RFHUtilResender()
+        resender = new RFHUtilHelper()
         resender.with {
             queue = applicationProperties.getProperty("resend.queue", "TEST.IN")
             port = applicationProperties.getProperty("resend.port", "2414") as int
