@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component
 import java.text.SimpleDateFormat
 
 @Component
-class EventConsumerRoute extends RouteBuilder {
+class EventCollectorRoute extends RouteBuilder {
+
+    private final static String EVENT_RFH_FILE_NAME = "eventRfhFileName"
 
     @Override
     void configure() throws Exception {
@@ -18,6 +20,19 @@ class EventConsumerRoute extends RouteBuilder {
                 .log(LoggingLevel.INFO, "Event received")
                 .convertBodyTo(String.class, "UTF-8")
                 .process { Exchange ex ->
+            Message message = ex.in
+
+            def event = new XmlParser(false, false).parseText(message.body)
+            String uniqueFlowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:uniqueFlowName".text()
+            String eventName = event."wmb:eventPointData"."wmb:eventData"."wmb:eventIdentity"."@wmb:eventName".text()
+            String creationTime = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:creationTime".text()
+            String creationDate = creationTime?.substring(0, 17).replaceAll('[-:T]', '')
+            String fileName = "/${uniqueFlowName.replace('.', '/')}/${eventName}-${creationDate}-${ex.exchangeId}"
+            message.setHeader(EVENT_RFH_FILE_NAME, fileName + ".rfh")
+            message.setHeader(Exchange.FILE_NAME, fileName + ".xml")
+
+        }.to("{{eventRoute.toXml}}")
+                .process { Exchange ex ->
 
             Message message = ex.in
 
@@ -25,16 +40,11 @@ class EventConsumerRoute extends RouteBuilder {
             NodeList bitStream = event."wmb:bitstreamData"."wmb:bitstream"
             byte[] decodedBitStream = bitStream.text().decodeBase64()
             message.body = decodedBitStream
+            String fileName = message.getHeader(EVENT_RFH_FILE_NAME)
 
-            String uniqueFlowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:uniqueFlowName".text()
-            String eventName = event."wmb:eventPointData"."wmb:eventData"."wmb:eventIdentity"."@wmb:eventName".text()
-            String creationTime = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:creationTime".text()
-            String creationDate = creationTime?.substring(0, 17).replaceAll('[-:T]', '')
-
-            String fileName = "/${uniqueFlowName.replace('.', '/')}/${eventName}-${creationDate}-${ex.exchangeId}.rfh"
             message.setHeader(Exchange.FILE_NAME, fileName)
 
         }
-        .to("{{eventRoute.to}}")
+        .to("{{eventRoute.toRfh}}")
     }
 }
