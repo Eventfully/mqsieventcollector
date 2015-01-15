@@ -1,0 +1,51 @@
+<wmb:event xmlns:wmb="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0/monitoring/event">
+    <wmb:eventPointData>
+        <wmb:eventData wmb:productVersion="9002" wmb:eventSchemaVersion="6.1.0.3"
+                       wmb:eventSourceAddress="InputOrder.transaction.Start">
+            <wmb:eventIdentity wmb:eventName="InputOrder.TransactionStart"/>
+            <wmb:eventSequence wmb:creationTime="2015-01-13T08:26:45.105999Z" wmb:counter="1"/>
+            <wmb:eventCorrelation wmb:localTransactionId="09e8fc6a-8095-4098-b006-45674e8d32b4-2"
+                                  wmb:parentTransactionId="ORderNumber" wmb:globalTransactionId=""/>
+        </wmb:eventData>
+        <wmb:messageFlowData>
+            <wmb:broker wmb:name="IB9NODE" wmb:UUID="42845841-e2a8-46e2-ac79-138f9154bc9a"/>
+            <wmb:executionGroup wmb:name="test" wmb:UUID="a7f27f1c-4801-0000-0080-e38b21e600ce"/>
+            <wmb:messageFlow wmb:uniqueFlowName="IB9NODE.test.TotalPurchaseOrderFlow" wmb:name="TotalPurchaseOrderFlow"
+                             wmb:UUID="adb697ce-4a01-0000-0080-86b4d8779861" wmb:threadId="49944"/>
+            <wmb:node wmb:nodeLabel="InputOrder" wmb:nodeType="ComIbmMQInputNode" wmb:detail="INPUT_ORDER_PRICE"/>
+        </wmb:messageFlowData>
+    </wmb:eventPointData>
+    <wmb:applicationData xmlns="">
+        <wmb:simpleContent wmb:name="purchaseOrderID" wmb:value="11112222"
+                           wmb:targetNamespace="http://www.ibm.com/ProcessOrder" wmb:dataType="string"/>
+        <wmb:simpleContent wmb:name="customerID" wmb:value="111111"
+                           wmb:targetNamespace="http://www.ibm.com/ProcessOrder" wmb:dataType="string"/>
+        <wmb:complexContent wmb:elementName="items" wmb:targetNamespace="http://www.ibm.com/ProcessOrder">
+            <NS1:items xmlns:NS1="http://www.ibm.com/ProcessOrder">
+                <NS1:item>
+                    <NS1:partNum>0239232</NS1:partNum>
+                    <NS1:productName>compost</NS1:productName>
+                    <NS1:quantity>14</NS1:quantity>
+                    <NS1:price>4.99</NS1:price>
+                </NS1:item>
+                <NS1:item>
+                    <NS1:partNum>0451481</NS1:partNum>
+                    <NS1:productName>lawnmower</NS1:productName>
+                    <NS1:quantity>10</NS1:quantity>
+                    <NS1:price>79.99</NS1:price>
+                </NS1:item>
+                <NS1:item>
+                    <NS1:partNum>0481257</NS1:partNum>
+                    <NS1:productName>spade</NS1:productName>
+                    <NS1:quantity>10</NS1:quantity>
+                    <NS1:price>19.99</NS1:price>
+                </NS1:item>
+            </NS1:items>
+        </wmb:complexContent>
+    </wmb:applicationData>
+    <wmb:bitstreamData>
+        <wmb:bitstream wmb:encoding="base64Binary">
+            TUQgIAIAAAAAAAAACAAAAP////8AAAAAEQEAALgEAAAgICAgICAgIAAAAAAAAAAAQU1RIElCOVFNR1IgICAgID/WtFQgAEMCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIElCOVFNR1IgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAAAAAAICAgICAgICAgICAgICAgICAgICAgICAgICAgIDIwMTUwMTEzMDgyNjQ1MDggICAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAA/////zw/eG1sIHZlcnNpb249IjEuMCIgZW5jb2Rpbmc9IlVURi04Ij8+DQo8UE86cHVyY2hhc2VPcmRlciB4bWxuczpQTz0iaHR0cDovL3d3dy5pYm0uY29tL1Byb2Nlc3NPcmRlciIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vd3d3LmlibS5jb20vUHJvY2Vzc09yZGVyIHRvdGFsUE9JbnN0YW5jZS54c2QgIj4NCiAgPFBPOnB1cmNoYXNlT3JkZXJJRD4xMTExMjIyMjwvUE86cHVyY2hhc2VPcmRlcklEPg0KICA8UE86Y3VzdG9tZXJJRD4xMTExMTE8L1BPOmN1c3RvbWVySUQ+DQogIDxQTzpjdXN0b21lclR5cGU+R09MRDwvUE86Y3VzdG9tZXJUeXBlPg0KICA8UE86aXRlbXM+DQogICAgPFBPOml0ZW0+DQogICAgICA8UE86cGFydE51bT4wMjM5MjMyPC9QTzpwYXJ0TnVtPg0KICAgICAgPFBPOnByb2R1Y3ROYW1lPmNvbXBvc3Q8L1BPOnByb2R1Y3ROYW1lPg0KICAgICAgPFBPOnF1YW50aXR5PjE0PC9QTzpxdWFudGl0eT4NCiAgICAgIDxQTzpwcmljZT40Ljk5PC9QTzpwcmljZT4NCiAgICA8L1BPOml0ZW0+DQogICAgPFBPOml0ZW0+DQogICAgICA8UE86cGFydE51bT4wNDUxNDgxPC9QTzpwYXJ0TnVtPg0KICAgICAgPFBPOnByb2R1Y3ROYW1lPmxhd25tb3dlcjwvUE86cHJvZHVjdE5hbWU+DQogICAgICA8UE86cXVhbnRpdHk+MTA8L1BPOnF1YW50aXR5Pg0KICAgICAgPFBPOnByaWNlPjc5Ljk5PC9QTzpwcmljZT4NCiAgICA8L1BPOml0ZW0+DQogICAgPFBPOml0ZW0+DQogICAgICA8UE86cGFydE51bT4wNDgxMjU3PC9QTzpwYXJ0TnVtPg0KICAgICAgPFBPOnByb2R1Y3ROYW1lPnNwYWRlPC9QTzpwcm9kdWN0TmFtZT4NCiAgICAgIDxQTzpxdWFudGl0eT4xMDwvUE86cXVhbnRpdHk+DQogICAgICA8UE86cHJpY2U+MTkuOTk8L1BPOnByaWNlPg0KICAgIDwvUE86aXRlbT4NCiAgPC9QTzppdGVtcz4NCjwvUE86cHVyY2hhc2VPcmRlcj4=
+        </wmb:bitstream>
+    </wmb:bitstreamData>
+</wmb:event>

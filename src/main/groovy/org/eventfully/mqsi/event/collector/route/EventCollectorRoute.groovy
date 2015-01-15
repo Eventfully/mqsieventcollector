@@ -4,6 +4,7 @@ import org.apache.camel.Exchange
 import org.apache.camel.LoggingLevel
 import org.apache.camel.Message
 import org.apache.camel.builder.RouteBuilder
+import org.eventfully.mqsi.event.collector.component.MqsiEventParser
 import org.springframework.stereotype.Component
 
 import java.text.SimpleDateFormat
@@ -36,10 +37,7 @@ class EventCollectorRoute extends RouteBuilder {
 
             Message message = ex.in
 
-            def event = new XmlParser(false, false).parseText(message.body)
-            NodeList bitStream = event."wmb:bitstreamData"."wmb:bitstream"
-            byte[] decodedBitStream = bitStream.text().decodeBase64()
-            message.body = decodedBitStream
+            message.body = MqsiEventParser.extractBitstreamPayload(message.body)
             String fileName = message.getHeader(EVENT_RFH_FILE_NAME)
 
             message.setHeader(Exchange.FILE_NAME, fileName)
@@ -47,4 +45,5 @@ class EventCollectorRoute extends RouteBuilder {
         }
         .to("{{eventRoute.toRfh}}")
     }
+
 }
