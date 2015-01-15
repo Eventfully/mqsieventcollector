@@ -3,3 +3,4 @@
     <TotalPurchaseOrderFlow eventSrc="InputOrder.transaction.Start" eventName="InputOrder.TransactionStart"
                             resendQueue="RESEND"/>
 </msgflows>
+

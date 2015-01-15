@@ -1,5 +1,6 @@
 package org.eventfully.mqsi.event.collector.route
 
+import com.ibm.mq.MQMessage
 import org.apache.camel.Exchange
 import org.apache.camel.LoggingLevel
 import org.apache.camel.Message
@@ -35,12 +36,22 @@ class EventXmlResenderRoute extends RouteBuilder {
                 .process { Exchange ex ->
 
             Message message = ex.in
-            message.body = MqsiEventParser.extractBitstreamPayload(message.body)
+            def event = new XmlParser(false, false).parseText(message.body)
+            String flowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:name".text()
+            String eventSrc = event."wmb:eventPointData"."wmb:eventData"."@wmb:eventSourceAddress".text()
+
+            String resendQueue = resendConfiguration.findResendQueueForEventSource(flowName, eventSrc)
+
+            log.info("Found resend queue ${resendQueue} for flow: ${flowName} and event source ${eventSrc}")
+
+            NodeList bitStream = event."wmb:bitstreamData"."wmb:bitstream"
+            byte[] decodedBitStream = bitStream.text().decodeBase64()
+
+            MQMessage mqMessage = rfhUtilHelper.extract(decodedBitStream)
+            mqSender.resendToQueue(mqMessage, resendQueue)
 
         }
-        .bean(rfhUtilHelper, "extract")
-                .bean(mqSender, "resend")
-                .log(LoggingLevel.INFO, "Message resent")
+        .log(LoggingLevel.INFO, "Message resent")
 
     }
 }
