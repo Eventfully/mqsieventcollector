@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
 
 @Component
-@ConfigurationProperties(prefix = "staticMQSender")
+@ConfigurationProperties(prefix = "mqSender")
 @Log4j
 class StaticMQSender {
 
@@ -20,7 +20,7 @@ class StaticMQSender {
     String channel
     String queue
 
-    public void resend(MQMessage mqMessage) {
+    public void resendToQueue(MQMessage mqMessage, String queueName) {
 
         Hashtable connProps = new Hashtable()
         connProps.put(MQC.HOST_NAME_PROPERTY, hostname)
@@ -28,12 +28,16 @@ class StaticMQSender {
         connProps.put(MQC.PORT_PROPERTY, port)
 
         MQQueueManager queueManager = new MQQueueManager(qmgr, connProps)
-        MQQueue mqQueue = queueManager.accessQueue(queue, MQConstants.MQOO_OUTPUT);
+        MQQueue mqQueue = queueManager.accessQueue(queueName, MQConstants.MQOO_OUTPUT);
 
         mqQueue.put(mqMessage)
         mqQueue.close();
         queueManager.disconnect()
 
+    }
+
+    public void resend(MQMessage mqMessage){
+        resendToQueue(mqMessage, queue)
     }
 
 }

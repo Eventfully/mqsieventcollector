@@ -7,6 +7,7 @@ import org.apache.camel.builder.RouteBuilder
 import org.eventfully.mqsi.event.collector.component.MqsiEventParser
 import org.eventfully.mqsi.event.collector.component.RFHUtilHelper
 import org.eventfully.mqsi.event.collector.component.StaticMQSender
+import org.eventfully.mqsi.event.collector.config.ResendConfiguration
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
@@ -20,6 +21,9 @@ class EventXmlResenderRoute extends RouteBuilder {
 
     @Autowired
     StaticMQSender mqSender
+
+    @Autowired
+    ResendConfiguration resendConfiguration
 
     @Override
     public void configure() throws Exception {
