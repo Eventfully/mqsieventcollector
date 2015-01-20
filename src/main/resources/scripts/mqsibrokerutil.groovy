@@ -15,11 +15,12 @@ cli.with
             i(longOpt: 'ip', 'The ip or hostname of the broker', args: 1, argName: 'IP', required: false)
             p(longOpt: 'port', 'The port of the broker mq listener', args: 1, argName: 'PORT', required: false)
             q(longOpt: 'qmgr', 'The broker queuemanager name', args: 1, argName: 'QMGR', required: false)
-            c(longOpt: 'cmd', 'The command, one of: [ list, display, profile]', args: 1, argName: 'CMD', required: true)
+            c(longOpt: 'cmd', 'The command, one of: [ list, profile]', args: 1, argName: 'CMD', required: true)
             e(longOpt: 'eg', 'The execution group/integration server name', args: 1, argName: 'EG', required: false)
             m(longOpt: 'msgflow', 'The message flow name, note that you must specify eg as well using this option.', args: 1, argName: 'MSGFLOW', required: false)
             w(longOpt: 'workdir', 'The working directory for generating output files, defaults to current directory', args: 1, argName: 'WORKDIR', required: false)
             s(longOpt: 'sources', 'eventsources=eventname key-value for generating events, mandatory for command profile, can be repeated multiple times.', args: 2, valueSeparator: '=', argName: 'SOURCES', required: false)
+            a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is for MQInputNodes and transaction.start/end with payload', args: 0, argName: 'AUTO', required: false)
         }
 def opt = cli.parse(args)
 if (!opt) {
@@ -36,6 +37,9 @@ Command command = Command.valueOf(opt.c)
 String egName = opt.e ?: null
 String msgFlowName = opt.m ?: null
 def sources = opt.s ?: null
+String workDirName= opt.w ?: System.properties.getProperty('user.dir')
+boolean autoCreateProfile = opt.a
+
 
 BrokerConnectionParameters bcp
 
@@ -64,28 +68,36 @@ String brokerName = proxy.name
 println "Connected to: '${brokerName}'"
 
 if (command == Command.list) {
-    if (egName) {
-        ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
-        assert egp
-        return listFlowsInExecutionGroup(egp)
-    } else {
-        return listEGs(proxy)
-    }
-} else if (command == Command.display) {
     if (msgFlowName && egName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
         displayFlowInExecutionGroup(egp, msgFlowName)
         return displayFlowDetails(mfp)
+    } else if (egName) {
+        ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
+        assert egp
+        return listFlowsInExecutionGroup(egp)
+    } else {
+        return listEGs(proxy)
     }
 } else if (command == Command.profile) {
-    assert sources
-    def sourceMap = opt.ss.toSpreadMap()
-    sourceMap.each { k, v -> println k + " " + v }
-    def profile = MonitoringProfileFactory.newProfile(sourceMap)
+    String profile = null
+    if (sources){
+        def sourceMap = opt.ss.toSpreadMap()
+        sourceMap.each { k, v -> println k + " " + v }
+        profile = MonitoringProfileFactory.newProfile(sourceMap)
+    } else if (autoCreateProfile && msgFlowName && egName){
+        ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
+        assert egp
+        MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
+        def sourceMap = createFlowInputMQEventSourcesMap(mfp)
+        profile = MonitoringProfileFactory.newProfile(sourceMap)
+    } else {
+        println "Sorry, nothing here."
+        return
+    }
     println profile
-    return
 }
 else {
     println "not implemented yet"
@@ -127,8 +139,21 @@ def displayFlowDetails(MessageFlowProxy mfp) {
     }
 }
 
+def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
+        def eventSourceMap = [:]
+        def nodeNames = mfp.nodes
+        nodeNames.each { MessageFlowProxy.Node node ->
+            if (node.type == 'ComIbmMQInputNode') {
+                println "\tFound MQ input node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
+                eventSourceMap.put("${node.name}.transaction.start", "${node.name}.Start")
+                eventSourceMap.put("${node.name}.transaction.end", "${node.name}.End")
+            }
+        }
+        return eventSourceMap
+}
+
 enum Command {
-    list, display, profile
+    list, profile
 }
 
 import groovy.text.GStringTemplateEngine
