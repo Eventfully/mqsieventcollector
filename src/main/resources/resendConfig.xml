@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<msgflows>
-    <TotalPurchaseOrderFlow eventSrc="InputOrder.transaction.Start" eventName="InputOrder.TransactionStart"
-                            resendQueue="RESEND"/>
-</msgflows>
