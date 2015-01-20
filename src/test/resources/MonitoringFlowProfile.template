@@ -1,0 +1,55 @@
+import groovy.text.GStringTemplateEngine
+
+String xmlProfile = '''<profile:monitoringProfile
+        xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile"
+        profile:version="2.0"><% sources.each { %>
+    <profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="true">
+        <profile:eventPointDataQuery>
+            <profile:eventIdentity>
+                <profile:eventName profile:literal="${it.eventName}"/>
+            </profile:eventIdentity>
+            <profile:eventCorrelation>
+                <profile:localTransactionId profile:sourceOfId="automatic"/>
+                <profile:parentTransactionId profile:sourceOfId="automatic"/>
+                <profile:globalTransactionId profile:sourceOfId="automatic"/>
+            </profile:eventCorrelation>
+            <profile:eventSequence profile:name="creationTime"/>
+        </profile:eventPointDataQuery>
+        <profile:applicationDataQuery>
+        </profile:applicationDataQuery>
+        <profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/>
+    </profile:eventSource><% } %>
+</profile:monitoringProfile>
+'''
+
+GStringTemplateEngine engine = new GStringTemplateEngine()
+EventConfig e1 = new EventConfig(source: 'InputOrder.transaction.start', name: 'INT0002.Start', encoding: BitstreamEncoding.base64binary, content: BitstreamContent.all)
+EventConfig e2 = new EventConfig(source: 'InputOrder.transaction.end', name: 'INT0002.End', encoding: BitstreamEncoding.base64binary, content: BitstreamContent.all)
+
+List sources = [ e1, e2 ]
+
+def expandoSources = []
+sources.each {
+    expandoSources.add(new Expando(eventSource: it.source, eventName: it.name, bitstreamEncoding: it.encoding, bitstreamContent: it.content))
+}
+
+def binding = [ sources: expandoSources ]
+def template = engine.createTemplate(xmlProfile).make(binding)
+println template.toString()
+
+enum BitstreamContent {
+    none, all
+}
+
+enum BitstreamEncoding {
+    none, base64binary
+}
+
+class EventConfig {
+
+    String name
+    String source
+    BitstreamContent content
+    BitstreamEncoding encoding
+
+}

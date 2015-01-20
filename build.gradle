@@ -17,6 +17,7 @@ ext {
     ext {
         camelVersion = '2.15-SNAPSHOT'
         MQ_JAVA_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/lib'
+        MQSI_CLASSES = System.getenv()['MQSI_HOME'] + '/classes'
     }
 }
 
@@ -41,6 +42,7 @@ dependencies {
     runtime("org.jolokia:jolokia-core")
 
     compile "org.codehaus.groovy:groovy-all"
+    compile 'commons-cli:commons-cli'
     compile "org.springframework.boot:spring-boot-starter-web"
     compile "com.fasterxml.jackson.core:jackson-annotations"
     compile "com.fasterxml.jackson.core:jackson-core"
@@ -53,6 +55,7 @@ dependencies {
     compile "org.apache.camel:camel-jms:$camelVersion"
     //WMQ
     compile fileTree(dir: MQ_JAVA_LIB_DIR, include: '*.jar')
+    compile fileTree(dir: MQSI_CLASSES, include: 'ConfigManagerProxy.jar')
 
     //test
     testCompile("org.springframework.boot:spring-boot-starter-test")

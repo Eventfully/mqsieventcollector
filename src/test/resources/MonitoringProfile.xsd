@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile"
+    xmlns:p="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile"
+    elementFormDefault="qualified" attributeFormDefault="qualified"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <!-- A monitoring profile configures the event sources in a message flow -->
+
+    <!-- The monitoring profile element -->
+    <xsd:element name="monitoringProfile" type="p:monitoringProfileType" />
+
+    <!-- Complex type for the monitoring profile element -->
+    <xsd:complexType name="monitoringProfileType">
+        <xsd:sequence>
+            <!-- Each occurrence of eventSource contains the event properties for exactly one event source -->
+            <xsd:element ref="p:eventSource" minOccurs="0" maxOccurs="unbounded"/>
+        </xsd:sequence>
+        <xsd:attribute name="version" type="xsd:string" fixed="2.0"/>
+    </xsd:complexType>
+
+    <!-- The event source element -->
+    <xsd:element name="eventSource">
+        <xsd:complexType>
+            <xsd:sequence>
+                <!-- eventPointDataQuery configures the key information about the event -->
+                <xsd:element ref="p:eventPointDataQuery" minOccurs="0" maxOccurs="1"/>
+                <!-- applicationDataQuery configures which fields from the message payload to add to the event for use by a monitoring application -->
+                <xsd:element ref="p:applicationDataQuery" minOccurs="0" maxOccurs="1"/>
+                <!-- bitstreamDataQuery configures how the message bitstream is to be added to the event -->
+                <xsd:element ref="p:bitstreamDataQuery" minOccurs="0" maxOccurs="1"/>
+            </xsd:sequence>
+
+            <!-- The initial state of the event source -->
+            <xsd:attribute name="enabled" type="xsd:boolean" use="optional"/>
+            <!-- The address of the event source within the message flow(s) which use this profile -->
+            <!-- Terminal event: [nodeLabel].terminal.[terminalName] or -->
+            <!-- Transaction event: [nodeLabel].transaction.Start/End/Rollback -->  
+            <xsd:attribute name="eventSourceAddress" type="xsd:string" use="required"/>
+
+        </xsd:complexType>
+    </xsd:element>
+
+    <!-- The eventPointDataQuery element -->
+    <xsd:element name="eventPointDataQuery">
+        <xsd:complexType>
+            <xsd:sequence>
+                <!-- Event identity information -->
+                <xsd:element name="eventIdentity" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <!-- This query populates the eventPointData/eventData/eventIdentity/@eventName attribute -->
+                            <xsd:element name="eventName" type="p:eventIdentityType" minOccurs="1" maxOccurs="1"/> 
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+
+                <!-- Event correlation information -->
+                <xsd:element name="eventCorrelation" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <!-- This query populates the eventPointData/eventData/eventCorrelation/@localTransactionId -->
+                            <xsd:element name="localTransactionId" type="p:transactionIdQueryType"  minOccurs="0" maxOccurs="1"/>
+                            <!-- This query populates the eventPointData/eventData/eventCorrelation/@parentTransactionId -->
+                            <xsd:element name="parentTransactionId" type="p:transactionIdQueryType" minOccurs="0" maxOccurs="1"/>
+                            <!-- This query populates the eventPointData/eventData/eventCorrelation/@globalTransactionId -->
+                            <xsd:element name="globalTransactionId" type="p:transactionIdQueryType" minOccurs="0" maxOccurs="1"/>
+                        </xsd:sequence>
+                    </xsd:complexType>
+                </xsd:element>
+
+                <!-- Event sequence information -->
+                <xsd:element name="eventSequence" minOccurs="0" maxOccurs="1">
+                    <xsd:complexType>
+                        <!-- Specifies how to populate eventPointData/eventSequence -->
+                        <xsd:attribute name="name" use="required">
+                            <xsd:simpleType>
+                              <xsd:restriction base="xsd:string">
+                                   <xsd:enumeration value="creationTime" />
+                                   <xsd:enumeration value="counter" />
+                              </xsd:restriction>
+                            </xsd:simpleType>
+                        </xsd:attribute>
+                    </xsd:complexType>
+                </xsd:element>
+
+                <!-- This query returns true/false to indicate whether to emit an event -->
+                <xsd:element name="eventFilter" type="p:queryType"  minOccurs="0" maxOccurs="1"/>
+
+                <!-- This element specifies which, if any, unit of work the event should be associated with -->
+                <!--  none          -  the event is emitted out of syncpoint ( not in any unit of work      -->
+                <!--  messageFlow   -  the event is emitted in the same unit of work as main message        -->
+                <!--  independent   -  the event is emitted in an independent unit of work                  -->
+                <xsd:element name="eventUOW" minOccurs="0" maxOccurs="1">
+                  <xsd:complexType>
+                    <!-- Specifies the unit of work -->
+                    <xsd:attribute name="unitOfWork" type="p:eventUOWType"/>
+                  </xsd:complexType>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+    
+    <!-- The applicationData element -->
+    <xsd:element name="applicationDataQuery">
+        <xsd:complexType>
+            <xsd:sequence>
+                <!-- These queries populate the applicationData/simpleContent elements -->
+                <xsd:element name="simpleContent" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="valueQuery" type="p:queryType" minOccurs="1" maxOccurs="1"/>
+                        </xsd:sequence>
+                        <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        <xsd:attribute name="dataType" type="p:simpleContentDataType" use="required"/>
+                        <xsd:attribute name="targetNamespace" type="xsd:string" use="optional"/>
+                    </xsd:complexType>
+                </xsd:element>
+
+                <!-- These queries populate the applicationData/complexContent elements -->
+                <xsd:element name="complexContent" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                        <xsd:sequence>
+                            <xsd:element name="payloadQuery" type="p:queryType"/>
+                        </xsd:sequence>
+                        <xsd:attribute name="name" type="xsd:string" use="optional"/>
+                        <xsd:attribute name="targetNamespace" type="xsd:string" use="optional"/>
+                    </xsd:complexType>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:complexType>
+    </xsd:element>
+
+    <!-- The bitstreamDataQuery element -->
+    <xsd:element name="bitstreamDataQuery">
+        <xsd:complexType>
+            <!-- Specifies which part of the bitstream to include in bitstreamData/bitstream -->
+            <xsd:attribute name="bitstreamContent" type="p:bitstreamContentType"/>
+            <!-- Specifies the encoding of the included bitstream in bitstreamData/bitstream/@encoding  -->
+            <xsd:attribute name="encoding" type="p:encodingType"/>
+        </xsd:complexType>
+    </xsd:element>
+
+    <!-- Complex type used as a base type by all XPath queries -->
+    <xsd:complexType name="queryType">
+        <xsd:sequence>
+            <!-- For every unique namespace prefix in the XPath, a prefix-to-URL mapping must be provided -->
+            <xsd:element name="prefixMapping" minOccurs="0" maxOccurs="unbounded">
+                <xsd:complexType>
+                    <xsd:attribute name="prefix" type="xsd:string" use="required"/>
+                    <xsd:attribute name="URI" type="xsd:string" use="required"/>
+                </xsd:complexType>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="queryText" type="xsd:string" use="optional"/>
+    </xsd:complexType>
+
+    <!-- Complex type for XPath query for event name -->
+    <!-- Either a literal or a query should be provided -->
+    <xsd:complexType name="eventIdentityType">
+        <complexContent>
+            <extension base="p:queryType">
+                <xsd:attribute name="literal" type="xsd:string" use="optional" />
+            </extension>
+        </complexContent>
+    </xsd:complexType>
+
+    <!-- Complex type for XPath query for transaction correlators -->
+    <xsd:complexType name="transactionIdQueryType">
+        <complexContent>
+            <extension base="p:queryType">
+                <xsd:attribute name="sourceOfId" default="automatic" use="optional">
+                    <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                            <xsd:enumeration value="unused"/>
+                            <xsd:enumeration value="automatic"/>
+                            <xsd:enumeration value="query"/>
+                            <!-- Reserved for future use -->
+                            <xsd:enumeration value="generated"/>
+                        </xsd:restriction>
+                    </xsd:simpleType>
+                </xsd:attribute>
+            </extension>
+        </complexContent>
+    </xsd:complexType>
+
+    <!-- Simple type for bitstream content -->
+    <xsd:simpleType name="bitstreamContentType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="none"/>
+            <xsd:enumeration value="headers"/>
+            <xsd:enumeration value="body"/>
+            <xsd:enumeration value="all"/>
+        </xsd:restriction>
+    </xsd:simpleType> 
+
+    <!-- Simple type for bitstream encoding -->
+    <xsd:simpleType name="encodingType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="none" />
+            <xsd:enumeration value="CDATA" />
+            <xsd:enumeration value="hexBinary" />
+            <xsd:enumeration value="base64Binary" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <!-- Simple type for simple content data type -->
+    <xsd:simpleType name="simpleContentDataType">
+        <xsd:restriction base="xsd:string">
+            <xsd:enumeration value="boolean" />
+            <xsd:enumeration value="date" />
+            <xsd:enumeration value="dateTime" />
+            <xsd:enumeration value="decimal" />
+            <xsd:enumeration value="duration" />
+            <xsd:enumeration value="integer" />
+            <xsd:enumeration value="string" />
+            <xsd:enumeration value="time" />
+        </xsd:restriction>
+    </xsd:simpleType>
+
+    <!-- Simple type for eventUOW data type -->
+    <xsd:simpleType name="eventUOWType">
+      <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="messageFlow" />
+        <xsd:enumeration value="independent" />
+        <xsd:enumeration value="none" />
+      </xsd:restriction>
+    </xsd:simpleType>
+
+    
+</xsd:schema>
+

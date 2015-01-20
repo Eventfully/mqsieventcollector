@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<broker crlNameList="" domainName="" host="localhost" listenerPort="3414"
+        queueManager="IB9QMGR" securityExit="" securityExitJar="" sslCipherSuite="NONE"
+        sslDistinguishedNames="" sslKeyStore="" sslTrustStore="" svrconn="SYSTEM.BKR.CONFIG"/>

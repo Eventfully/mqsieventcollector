@@ -1,0 +1,35 @@
+<profile:monitoringProfile
+        xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile"
+        profile:version="2.0">
+    <profile:eventSource profile:eventSourceAddress="InputOrder.transaction.start" profile:enabled="true">
+        <profile:eventPointDataQuery>
+            <profile:eventIdentity>
+                <profile:eventName profile:literal="InputOrder.TransactionStart"/>
+            </profile:eventIdentity>
+            <profile:eventCorrelation>
+                <profile:localTransactionId profile:sourceOfId="automatic"/>
+                <profile:parentTransactionId profile:sourceOfId="automatic"/>
+                <profile:globalTransactionId profile:sourceOfId="automatic"/>
+            </profile:eventCorrelation>
+            <profile:eventSequence profile:name="creationTime"/>
+        </profile:eventPointDataQuery>
+        <profile:applicationDataQuery>
+            <profile:complexContent>
+                <profile:payloadQuery profile:queryText="$Body/PO:purchaseOrder/PO:purchaseOrderID">
+                    <profile:prefixMapping profile:prefix="PO" profile:URI="http://www.ibm.com/ProcessOrder"/>
+                </profile:payloadQuery>
+            </profile:complexContent>
+            <profile:complexContent>
+                <profile:payloadQuery profile:queryText="$Body/PO:purchaseOrder/PO:customerID">
+                    <profile:prefixMapping profile:prefix="PO" profile:URI="http://www.ibm.com/ProcessOrder"/>
+                </profile:payloadQuery>
+            </profile:complexContent>
+            <profile:complexContent>
+                <profile:payloadQuery profile:queryText="$Body/PO:purchaseOrder/PO:items">
+                    <profile:prefixMapping profile:prefix="PO" profile:URI="http://www.ibm.com/ProcessOrder"/>
+                </profile:payloadQuery>
+            </profile:complexContent>
+        </profile:applicationDataQuery>
+        <profile:bitstreamDataQuery profile:bitstreamContent="none" profile:encoding="none"/>
+    </profile:eventSource>
+</profile:monitoringProfile>
