@@ -98,6 +98,9 @@ if (command == Command.list) {
         return
     }
     println profile
+    File outputFile = new File( workDirName, "${msgFlowName}-profile.xml")
+    outputFile.setText(profile, "UTF-8")
+    println "profile xml created: ${outputFile}"
 }
 else {
     println "not implemented yet"
@@ -145,8 +148,9 @@ def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
         nodeNames.each { MessageFlowProxy.Node node ->
             if (node.type == 'ComIbmMQInputNode') {
                 println "\tFound MQ input node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
-                eventSourceMap.put("${node.name}.transaction.start", "${node.name}.Start")
-                eventSourceMap.put("${node.name}.transaction.end", "${node.name}.End")
+                eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
+                eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
+               // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
             }
         }
         return eventSourceMap
