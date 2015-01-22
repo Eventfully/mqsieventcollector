@@ -39,8 +39,9 @@ class EventXmlResenderRoute extends RouteBuilder {
             def event = new XmlParser(false, false).parseText(message.body)
             String flowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:name".text()
             String eventSrc = event."wmb:eventPointData"."wmb:eventData"."@wmb:eventSourceAddress".text()
-
-            String resendQueue = resendConfiguration.findResendQueueForEventSource(flowName, eventSrc)
+            // Add error handling if it is not an ComIbmMQInputNode
+            String nodeDetail = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:node"."@wmb:detail".text()
+            String resendQueue = resendConfiguration.findResendQueueForEventSource(flowName, eventSrc) ?: nodeDetail
 
             log.info("Found resend queue ${resendQueue} for flow: ${flowName} and event source ${eventSrc}")
 
