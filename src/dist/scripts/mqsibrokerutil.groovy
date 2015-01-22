@@ -37,7 +37,7 @@ Command command = Command.valueOf(opt.c)
 String egName = opt.e ?: null
 String msgFlowName = opt.m ?: null
 def sources = opt.s ?: null
-String workDirName= opt.w ?: System.properties.getProperty('user.dir')
+String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
 
 
@@ -83,11 +83,11 @@ if (command == Command.list) {
     }
 } else if (command == Command.profile) {
     String profile = null
-    if (sources){
+    if (sources) {
         def sourceMap = opt.ss.toSpreadMap()
         sourceMap.each { k, v -> println k + " " + v }
         profile = MonitoringProfileFactory.newProfile(sourceMap)
-    } else if (autoCreateProfile && msgFlowName && egName){
+    } else if (autoCreateProfile && msgFlowName && egName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
@@ -98,11 +98,10 @@ if (command == Command.list) {
         return
     }
     println profile
-    File outputFile = new File( workDirName, "${msgFlowName}-profile.xml")
+    File outputFile = new File(workDirName, "${msgFlowName}-profile.xml")
     outputFile.setText(profile, "UTF-8")
     println "profile xml created: ${outputFile}"
-}
-else {
+} else {
     println "not implemented yet"
     return
 }
@@ -143,17 +142,17 @@ def displayFlowDetails(MessageFlowProxy mfp) {
 }
 
 def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
-        def eventSourceMap = [:]
-        def nodeNames = mfp.nodes
-        nodeNames.each { MessageFlowProxy.Node node ->
-            if (node.type == 'ComIbmMQInputNode') {
-                println "\tFound MQ input node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
-                eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
-                eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
-               // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
-            }
+    def eventSourceMap = [:]
+    def nodeNames = mfp.nodes
+    nodeNames.each { MessageFlowProxy.Node node ->
+        if (node.type == 'ComIbmMQInputNode') {
+            println "\tFound MQ input node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
+            eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
+            eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
+            // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
         }
-        return eventSourceMap
+    }
+    return eventSourceMap
 }
 
 enum Command {
@@ -164,40 +163,19 @@ import groovy.text.GStringTemplateEngine
 
 class MonitoringProfileFactory {
 
+    static String xmlProfile = '''<profile:monitoringProfile xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile" profile:version="2.0"><% sources.each { %><profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="true"><profile:eventPointDataQuery><profile:eventIdentity><profile:eventName profile:literal="${it.eventName}"/></profile:eventIdentity><profile:eventCorrelation><profile:localTransactionId profile:sourceOfId="automatic"/><profile:parentTransactionId profile:sourceOfId="automatic"/><profile:globalTransactionId profile:sourceOfId="automatic"/></profile:eventCorrelation><profile:eventFilter profile:queryText="true()"/><profile:eventUOW profile:unitOfWork="messageFlow"/></profile:eventPointDataQuery><profile:applicationDataQuery></profile:applicationDataQuery><profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/></profile:eventSource><% } %></profile:monitoringProfile>'''
 
-static String xmlProfile = '''<profile:monitoringProfile
-        xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile"
-        profile:version="2.0"><% sources.each { %>
-    <profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="true">
-        <profile:eventPointDataQuery>
-            <profile:eventIdentity>
-                <profile:eventName profile:literal="${it.eventName}"/>
-            </profile:eventIdentity>
-            <profile:eventCorrelation>
-                <profile:localTransactionId profile:sourceOfId="automatic"/>
-                <profile:parentTransactionId profile:sourceOfId="automatic"/>
-                <profile:globalTransactionId profile:sourceOfId="automatic"/>
-            </profile:eventCorrelation>
-            <profile:eventSequence profile:name="creationTime"/>
-        </profile:eventPointDataQuery>
-        <profile:applicationDataQuery>
-        </profile:applicationDataQuery>
-        <profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/>
-    </profile:eventSource><% } %>
-</profile:monitoringProfile>
-'''
-
-    static String newProfile(def sources){
+    static String newProfile(def sources) {
         GStringTemplateEngine engine = new GStringTemplateEngine()
 
         def expandoSources = []
         sources.each { key, value ->
-            expandoSources.add(new Expando(eventSource: key, eventName: value, bitstreamEncoding: BitstreamEncoding.base64binary, bitstreamContent: BitstreamContent.all))
+            expandoSources.add(new Expando(eventSource: key, eventName: value, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
         }
 
-        def binding = [ sources: expandoSources ]
+        def binding = [sources: expandoSources]
         def template = engine.createTemplate(xmlProfile).make(binding)
-        return  template.toString()
+        return template.toString()
     }
 }
 
@@ -207,7 +185,7 @@ enum BitstreamContent {
 }
 
 enum BitstreamEncoding {
-    none, base64binary
+    none, base64Binary
 }
 
 class EventConfig {

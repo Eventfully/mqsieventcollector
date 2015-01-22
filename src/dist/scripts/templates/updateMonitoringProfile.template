@@ -1,0 +1,2 @@
+mqsichangeproperties ${brokerName} -c MonitoringProfiles -o ${profileName} -n profileProperties -p ${profileFileName}
+mqsichangeflowmonitoring ${brokerName} -e ${egName} -f [msgFlowName} -m ${profileName}

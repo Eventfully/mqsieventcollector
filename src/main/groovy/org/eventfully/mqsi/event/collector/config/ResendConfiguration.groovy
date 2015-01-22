@@ -16,8 +16,8 @@ public class ResendConfiguration {
     String configFileName = "resendConfig.xml"
     Node configurationNode
 
-    @Bean
-    ResendConfiguration resendConfig() {
+    @Bean(name = "resendConfig")
+    ResendConfiguration resendConfiguration() {
         File eventXml = new File(configFileName)
         this.configurationNode = new XmlParser(false, false).parse(eventXml)
         return this

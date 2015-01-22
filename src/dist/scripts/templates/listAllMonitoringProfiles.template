@@ -1,0 +1,1 @@
+mqsireportproperties ${brokerName} -c MonitoringProfiles -o AllReportableEntityNames -a

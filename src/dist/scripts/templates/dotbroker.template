@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<broker crlNameList="" domainName="" host="${hostname}" listenerPort="${port}"
+        queueManager="${qmgr}" securityExit="" securityExitJar="" sslCipherSuite="NONE"
+        sslDistinguishedNames="" sslKeyStore="" sslTrustStore="" svrconn="${channel}"/>
