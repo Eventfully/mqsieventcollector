@@ -40,7 +40,6 @@ def sources = opt.s ?: null
 String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
 
-
 BrokerConnectionParameters bcp
 
 if (localBroker) {
@@ -97,15 +96,52 @@ if (command == Command.list) {
         println "Sorry, nothing here."
         return
     }
+
     println profile
-    File outputFile = new File(workDirName, "${msgFlowName}-profile.xml")
-    outputFile.setText(profile, "UTF-8")
-    println "profile xml created: ${outputFile}"
+    File outputDir = new File(workDirName + "/${msgFlowName}")
+    outputDir.deleteDir()
+    outputDir.mkdir()
+    String xmlProfileFileName = "${msgFlowName}-profile.xml"
+    File outputProfileFile = new File(outputDir, xmlProfileFileName)
+    outputProfileFile.setText(profile, "UTF-8")
+    println "profile xml created: ${outputProfileFile}"
+
+    println "creating mqsicommand files"
+    createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName)
+
 } else {
     println "not implemented yet"
     return
 }
 
+def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName) {
+    String exportFileName = "exported-" + profileXmlFileName
+    def binding = ["brokerName"        : brokerName,
+                   "egName"            : egName,
+                   "msgFlowName"       : msgFlowName,
+                   "profileFileName"   : profileXmlFileName,
+                   "profileName"       : msgFlowName,
+                   "exportFileName"    : exportFileName]
+
+    def templateFiles = [ "activateFlowEvents.template",
+                          "createMonitoringProfile.template",
+                          "deleteMonitoringProfile.template",
+                          "exportFlowMonitoringProfile.template",
+                          "inactivateFlowEvents.template",
+                          "listAllConfigurableEventsInFlow.template",
+                          "listAllConfiguredEventsInFlow.template",
+                          "updateMonitoringProfile.template"]
+
+    String templateDirName = System.properties.getProperty('user.dir') + "/scripts/templates"
+
+    templateFiles.each { templateFileName ->
+        File templateFile = new File(templateDirName, templateFileName)
+        def engine = new GStringTemplateEngine()
+        def activeTemplate = engine.createTemplate(templateFile).make(binding)
+        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "cmd"))
+        ouputFile.text = activeTemplate.toString()
+    }
+}
 
 def listEGs(BrokerProxy proxy) {
     proxy.getExecutionGroups().each { ExecutionGroupProxy egp ->

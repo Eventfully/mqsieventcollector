@@ -1,1 +1,1 @@
-mqsireportflowmonitoring ${brokerName} -e ${egName} -f [msgFlowName} -x -p ${exportFileName}
+mqsireportflowmonitoring ${brokerName} -e ${egName} -f ${msgFlowName} -x -p ${exportFileName}

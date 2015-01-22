@@ -1,1 +1,1 @@
-mqsichangeflowmonitoring ${brokerName} -e ${egName} -f [msgFlowName} -c active
+mqsichangeflowmonitoring ${brokerName} -e ${egName} -f ${msgFlowName} -c active
