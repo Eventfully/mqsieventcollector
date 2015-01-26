@@ -22,6 +22,5 @@ Follow the instructions in it for setting up subscription and activating the eve
 $SYS/Broker/IB9NODE/Monitoring/test/TotalPurchaseOrderFlow
 mqsichangeflowmonitoring IB9NODE -e test -f TotalPurchaseOrderFlow -c active
 
-
-
 Note that a Developer Edition of IIB is readily available through IBM's website.
+
