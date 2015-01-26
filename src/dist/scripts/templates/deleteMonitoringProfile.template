@@ -1,2 +1,3 @@
+mqsichangeflowmonitoring ${brokerName} -e ${egName} -f ${msgFlowName} -c inactive
 mqsideleteconfigurableservice ${brokerName} -c MonitoringProfiles -o ${profileName}
 mqsichangeflowmonitoring ${brokerName} -e ${egName} -f ${msgFlowName} -m ''
