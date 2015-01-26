@@ -1,6 +1,13 @@
 # mqsieventcollector
 An simple collector of IBM mqsi events.
 
+# Brief history
+This project was developed during a real migration from IBM WebSphere Message Broker V7 to IBM Integration Bus V9.
+Feel free to give back via pull requests or just make issues with suggestions on improvement.
+
+# Licensing
+The project is licensed under the Apache 2.0 license -  http://www.apache.org/licenses/LICENSE-2.0
+
 # Pre requisites 
 
 ## WebSphere MQ

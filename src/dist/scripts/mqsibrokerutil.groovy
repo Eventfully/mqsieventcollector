@@ -93,7 +93,8 @@ if (command == Command.list) {
         def sourceMap = createFlowInputMQEventSourcesMap(mfp)
         profile = MonitoringProfileFactory.newProfile(sourceMap)
     } else {
-        println "Sorry, nothing here."
+        println "Wrong arguments supplied for profile."
+        cli.usage()
         return
     }
 
@@ -115,7 +116,8 @@ if (command == Command.list) {
 }
 
 def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName) {
-    String exportFileName = "exported-" + profileXmlFileName
+    String exportFileName = "%CD%\\exported-" + profileXmlFileName
+
     def binding = ["brokerName"        : brokerName,
                    "egName"            : egName,
                    "msgFlowName"       : msgFlowName,
