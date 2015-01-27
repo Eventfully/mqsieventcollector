@@ -1,6 +1,8 @@
 # mqsieventcollector
 An simple collector of IBM mqsi events.
 
+See the wiki for more information, this readme is focused on how to work with development and test.
+
 # Brief history
 This project was developed during a real migration from IBM WebSphere Message Broker V7 to IBM Integration Bus V9.
 Feel free to give back via pull requests or just make issues with suggestions on improvement.
