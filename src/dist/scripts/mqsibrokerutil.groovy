@@ -10,14 +10,13 @@ def cli = new CliBuilder(
 
 cli.with
         {
-            //  b(longOpt: 'brokername', 'The name the local broker', args:1, argName:'LOCALBROKER', required: false)
-            f(longOpt: 'brokerfile', 'The name of the .broker connection file', args: 1, argName: 'BROKERFILE', required: false)
+            b(longOpt: 'brokerfile', 'The name of the .broker connection file', args: 1, argName: 'BROKERFILE', required: false)
             i(longOpt: 'ip', 'The ip or hostname of the broker', args: 1, argName: 'IP', required: false)
             p(longOpt: 'port', 'The port of the broker mq listener', args: 1, argName: 'PORT', required: false)
             q(longOpt: 'qmgr', 'The broker queuemanager name', args: 1, argName: 'QMGR', required: false)
-            c(longOpt: 'cmd', 'The command, one of: [ list, profile]', args: 1, argName: 'CMD', required: true)
+            c(longOpt: 'create', 'Create profile', args: 0, argName: 'CREATE', required: false)
             e(longOpt: 'eg', 'The execution group/integration server name', args: 1, argName: 'EG', required: false)
-            m(longOpt: 'msgflow', 'The message flow name, note that you must specify eg as well using this option.', args: 1, argName: 'MSGFLOW', required: false)
+            f(longOpt: 'flow', 'The message flow name, note that you must specify eg as well using this option.', args: 1, argName: 'flow', required: false)
             w(longOpt: 'workdir', 'The working directory for generating output files, defaults to current directory', args: 1, argName: 'WORKDIR', required: false)
             s(longOpt: 'sources', 'eventsources=eventname key-value for generating events, mandatory for command profile, can be repeated multiple times.', args: 2, valueSeparator: '=', argName: 'SOURCES', required: false)
             a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is for MQInputNodes and transaction.start/end with payload', args: 0, argName: 'AUTO', required: false)
@@ -28,24 +27,20 @@ if (!opt) {
     return
 }
 
-String localBroker = opt.b ?: null
-String brokerFile = opt.f ?: null
+String brokerFile = opt.b ?: null
 String hostname = opt.i ?: null
 int port = opt.p ? opt.p as int : 1414
 String qmgr = opt.q ?: null
-Command command = Command.valueOf(opt.c)
+Command command =  opt.c ? Command.profile : Command.list
 String egName = opt.e ?: null
-String msgFlowName = opt.m ?: null
+String msgFlowName = opt.f ?: null
 def sources = opt.s ?: null
 String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
 
 BrokerConnectionParameters bcp
 
-if (localBroker) {
-    println "Connect to local broker: " + localBroker
-    bcp = new LocalBrokerConnectionParameters(localBroker)
-} else if (brokerFile) {
+if (brokerFile) {
     println "Connect using .broker file: " + brokerFile
     bcp = new MQPropertyFileBrokerConnectionParameters(brokerFile)
 } else if (hostname && port && qmgr) {
@@ -54,6 +49,13 @@ if (localBroker) {
 } else {
     println "You must specify either the [ -b | --brokername ] or [ -f | --brokerfile ] or all of [ -p, -q, -i ]"
     return
+}
+
+if (command == Command.profile){
+    if (! (sources || autoCreateProfile)){
+        println "For the create profile option you must either specify the -a or -s [eventSrc:eventName] options as well."
+        return
+    }
 }
 
 BrokerProxy proxy = BrokerProxy.getInstance(bcp);
@@ -90,8 +92,9 @@ if (command == Command.list) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
-        def sourceMap = createFlowInputMQEventSourcesMap(mfp)
-        profile = MonitoringProfileFactory.newProfile(sourceMap)
+        def sourceMQInputMap = createFlowInputMQEventSourcesMap(mfp)
+        def sourceMQOutputMap = createFlowInputMQEventSourcesMap(mfp)
+        profile = MonitoringProfileFactory.newProfile(sourceMQInputMap,sourceMQOutputMap)
     } else {
         println "Wrong arguments supplied for profile."
         cli.usage()
@@ -186,8 +189,20 @@ def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
         if (node.type == 'ComIbmMQInputNode') {
             println "\tFound MQ input node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
             eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
-            eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
+            //eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
             // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
+        }
+    }
+    return eventSourceMap
+}
+
+def createFlowOutputMQEventSourcesMap(MessageFlowProxy mfp) {
+    def eventSourceMap = [:]
+    def nodeNames = mfp.nodes
+    nodeNames.each { MessageFlowProxy.Node node ->
+        if (node.type == 'ComIbmMQOutputNode'){
+            println "\tFound MQ output node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
+            eventSourceMap.put("${node.name}.terminal.in", "${node.name}.Out")
         }
     }
     return eventSourceMap
@@ -201,14 +216,17 @@ import groovy.text.GStringTemplateEngine
 
 class MonitoringProfileFactory {
 
-    static String xmlProfile = '''<profile:monitoringProfile xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile" profile:version="2.0"><% sources.each { %><profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="true"><profile:eventPointDataQuery><profile:eventIdentity><profile:eventName profile:literal="${it.eventName}"/></profile:eventIdentity><profile:eventCorrelation><profile:localTransactionId profile:sourceOfId="automatic"/><profile:parentTransactionId profile:sourceOfId="automatic"/><profile:globalTransactionId profile:sourceOfId="automatic"/></profile:eventCorrelation><profile:eventFilter profile:queryText="true()"/><profile:eventUOW profile:unitOfWork="messageFlow"/></profile:eventPointDataQuery><profile:applicationDataQuery></profile:applicationDataQuery><profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/></profile:eventSource><% } %></profile:monitoringProfile>'''
+    static String xmlProfile = '''<profile:monitoringProfile xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile" profile:version="2.0"><% sources.each { %><profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="${it.enabled}"><profile:eventPointDataQuery><profile:eventIdentity><profile:eventName profile:literal="${it.eventName}"/></profile:eventIdentity><profile:eventCorrelation><profile:localTransactionId profile:sourceOfId="automatic"/><profile:parentTransactionId profile:sourceOfId="automatic"/><profile:globalTransactionId profile:sourceOfId="automatic"/></profile:eventCorrelation><profile:eventFilter profile:queryText="true()"/><profile:eventUOW profile:unitOfWork="messageFlow"/></profile:eventPointDataQuery><profile:applicationDataQuery></profile:applicationDataQuery><profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/></profile:eventSource><% } %></profile:monitoringProfile>'''
 
-    static String newProfile(def sources) {
+    static String newProfile(def inputSources, def outputSources) {
         GStringTemplateEngine engine = new GStringTemplateEngine()
 
         def expandoSources = []
-        sources.each { key, value ->
-            expandoSources.add(new Expando(eventSource: key, eventName: value, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
+        inputSources.each { key, value ->
+            expandoSources.add(new Expando(eventSource: key, eventName: value, enabled: true, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
+        }
+        outputSources.each { key, value ->
+            expandoSources.add(new Expando(eventSource: key, eventName: value, enabled: false, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
         }
 
         def binding = [sources: expandoSources]
