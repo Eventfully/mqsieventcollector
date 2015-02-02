@@ -10,6 +10,7 @@ def cli = new CliBuilder(
 
 cli.with
         {
+            h(longOpt: 'help', 'Show help', args: 0, argName: 'HELP', required: false)
             b(longOpt: 'brokerfile', 'The name of the .broker connection file', args: 1, argName: 'BROKERFILE', required: false)
             i(longOpt: 'ip', 'The ip or hostname of the broker', args: 1, argName: 'IP', required: false)
             p(longOpt: 'port', 'The port of the broker mq listener', args: 1, argName: 'PORT', required: false)
@@ -19,11 +20,11 @@ cli.with
             f(longOpt: 'flow', 'The message flow name, note that you must specify eg as well using this option.', args: 1, argName: 'flow', required: false)
             w(longOpt: 'workdir', 'The working directory for generating output files, defaults to current directory', args: 1, argName: 'WORKDIR', required: false)
             s(longOpt: 'sources', 'eventsources=eventname key-value for generating events, mandatory for command profile, can be repeated multiple times.', args: 2, valueSeparator: '=', argName: 'SOURCES', required: false)
-            a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is for MQInputNodes and transaction.start/end with payload', args: 0, argName: 'AUTO', required: false)
+            a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is enabling MQInputNodes with transaction.start with payload and configured but disabled MQOutputNodes terminal.in with payload.', args: 0, argName: 'AUTO', required: false)
         }
 def opt = cli.parse(args)
-if (!opt) {
-//    cli.usage()
+if (!opt || opt.h) {
+    cli.usage()
     return
 }
 
