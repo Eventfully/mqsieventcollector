@@ -32,7 +32,7 @@ String brokerFile = opt.b ?: null
 String hostname = opt.i ?: null
 int port = opt.p ? opt.p as int : 1414
 String qmgr = opt.q ?: null
-Command command =  opt.c ? Command.profile : Command.list
+Command command = opt.c ? Command.profile : Command.list
 String egName = opt.e ?: null
 String msgFlowName = opt.f ?: null
 def sources = opt.s ?: null
@@ -52,8 +52,8 @@ if (brokerFile) {
     return
 }
 
-if (command == Command.profile){
-    if (! (sources || autoCreateProfile)){
+if (command == Command.profile) {
+    if (!(sources || autoCreateProfile)) {
         println "For the create profile option you must either specify the -a or -s [eventSrc:eventName] options as well."
         return
     }
@@ -85,6 +85,7 @@ if (command == Command.list) {
     }
 } else if (command == Command.profile) {
     String profile = null
+    def outputEventSources
     if (sources) {
         def sourceMap = opt.ss.toSpreadMap()
         sourceMap.each { k, v -> println k + " " + v }
@@ -94,8 +95,9 @@ if (command == Command.list) {
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
         def sourceMQInputMap = createFlowInputMQEventSourcesMap(mfp)
-        def sourceMQOutputMap = createFlowInputMQEventSourcesMap(mfp)
-        profile = MonitoringProfileFactory.newProfile(sourceMQInputMap,sourceMQOutputMap)
+        Map sourceMQOutputMap = createFlowInputMQEventSourcesMap(mfp)
+        outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
+        profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
     } else {
         println "Wrong arguments supplied for profile."
         cli.usage()
@@ -112,14 +114,14 @@ if (command == Command.list) {
     println "profile xml created: ${outputProfileFile}"
 
     println "creating mqsicommand files"
-    createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName)
+    createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources)
 
 } else {
     println "not implemented yet"
     return
 }
 
-def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName) {
+def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources) {
     String exportFileName = "%CD%\\exported-" + profileXmlFileName
 
     def binding = ["brokerName"        : brokerName,
@@ -127,16 +129,19 @@ def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, Stri
                    "msgFlowName"       : msgFlowName,
                    "profileFileName"   : profileXmlFileName,
                    "profileName"       : msgFlowName,
-                   "exportFileName"    : exportFileName]
+                   "exportFileName"    : exportFileName,
+                   "outputEventSources": outputEventSources]
 
-    def templateFiles = [ "activateFlowEvents.template",
-                          "createMonitoringProfile.template",
-                          "deleteMonitoringProfile.template",
-                          "exportFlowMonitoringProfile.template",
-                          "inactivateFlowEvents.template",
-                          "listAllConfigurableEventsInFlow.template",
-                          "listAllConfiguredEventsInFlow.template",
-                          "updateMonitoringProfile.template"]
+    def templateFiles = ["activateFlowEvents.template",
+                         "createMonitoringProfile.template",
+                         "deleteMonitoringProfile.template",
+                         "exportFlowMonitoringProfile.template",
+                         "inactivateFlowEvents.template",
+                         "listAllConfigurableEventsInFlow.template",
+                         "listAllConfiguredEventsInFlow.template",
+                         "updateMonitoringProfile.template",
+                         "activateMQOutputEvents.template",
+                         "inactivateMQOutputEvents.template"]
 
     String templateDirName = System.properties.getProperty('user.dir') + "/scripts/templates"
 
@@ -201,7 +206,7 @@ def createFlowOutputMQEventSourcesMap(MessageFlowProxy mfp) {
     def eventSourceMap = [:]
     def nodeNames = mfp.nodes
     nodeNames.each { MessageFlowProxy.Node node ->
-        if (node.type == 'ComIbmMQOutputNode'){
+        if (node.type == 'ComIbmMQOutputNode') {
             println "\tFound MQ output node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
             eventSourceMap.put("${node.name}.terminal.in", "${node.name}.Out")
         }

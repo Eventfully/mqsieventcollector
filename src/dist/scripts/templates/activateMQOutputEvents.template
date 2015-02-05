@@ -1,0 +1,1 @@
+mqsichangeflowmonitoring ${brokerName} -e ${egName} -f ${msgFlowName} -i enable -s ${outputEventSources}
