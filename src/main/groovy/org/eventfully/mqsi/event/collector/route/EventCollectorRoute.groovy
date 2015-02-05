@@ -17,6 +17,11 @@ class EventCollectorRoute extends RouteBuilder {
     @Override
     void configure() throws Exception {
 
+        onException().handled(true).logStackTrace(true)
+                .to("log:org.eventfully.mqsi.event.collector?showAll=true&level=ERROR&showStackTrace=true&multiline=true")
+                .to("{{eventRoute.toFailure}}")
+
+
         from("{{eventRoute.from}}").routeId("{{eventRoute.id}}")
                 .log(LoggingLevel.INFO, "Event received")
                 .convertBodyTo(String.class, "UTF-8")
