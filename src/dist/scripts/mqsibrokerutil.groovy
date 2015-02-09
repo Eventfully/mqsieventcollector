@@ -95,7 +95,7 @@ if (command == Command.list) {
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
         def sourceMQInputMap = createFlowInputMQEventSourcesMap(mfp)
-        Map sourceMQOutputMap = createFlowInputMQEventSourcesMap(mfp)
+        Map sourceMQOutputMap = createFlowOutputMQEventSourcesMap(mfp)
         outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
         profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
     } else {
