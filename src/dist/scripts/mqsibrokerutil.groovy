@@ -140,8 +140,8 @@ def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, Stri
                          "listAllConfigurableEventsInFlow.template",
                          "listAllConfiguredEventsInFlow.template",
                          "updateMonitoringProfile.template",
-                         "activateMQOutputEvents.template",
-                         "inactivateMQOutputEvents.template"]
+                         "enableMQOutputEvents.template",
+                         "disableMQOutputEvents.template"]
 
     String templateDirName = System.properties.getProperty('user.dir') + "/scripts/templates"
 
@@ -222,10 +222,16 @@ import groovy.text.GStringTemplateEngine
 
 class MonitoringProfileFactory {
 
-    static String xmlProfile = '''<profile:monitoringProfile xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile" profile:version="2.0"><% sources.each { %><profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="${it.enabled}"><profile:eventPointDataQuery><profile:eventIdentity><profile:eventName profile:literal="${it.eventName}"/></profile:eventIdentity><profile:eventCorrelation><profile:localTransactionId profile:sourceOfId="automatic"/><profile:parentTransactionId profile:sourceOfId="automatic"/><profile:globalTransactionId profile:sourceOfId="automatic"/></profile:eventCorrelation><profile:eventFilter profile:queryText="true()"/><profile:eventUOW profile:unitOfWork="messageFlow"/></profile:eventPointDataQuery><profile:applicationDataQuery></profile:applicationDataQuery><profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/></profile:eventSource><% } %></profile:monitoringProfile>'''
+    //static String xmlProfile = '''<profile:monitoringProfile xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile" profile:version="2.0"><% sources.each { %><profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="${it.enabled}"><profile:eventPointDataQuery><profile:eventIdentity><profile:eventName profile:literal="${it.eventName}"/></profile:eventIdentity><profile:eventCorrelation><profile:localTransactionId profile:sourceOfId="automatic"/><profile:parentTransactionId profile:sourceOfId="automatic"/><profile:globalTransactionId profile:sourceOfId="automatic"/></profile:eventCorrelation><profile:eventFilter profile:queryText="true()"/><profile:eventUOW profile:unitOfWork="messageFlow"/></profile:eventPointDataQuery><profile:applicationDataQuery></profile:applicationDataQuery><profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/></profile:eventSource><% } %></profile:monitoringProfile>'''
+
+    static String templateDirName = System.properties.getProperty('user.dir') + "/scripts/templates"
+
+        File templateFile = new File(templateDirName, templateFileName)
+    static String xmlProfile = new File(templateDirName, "defaultMonitoringProfile.xml").getText("UTF-8")
 
     static String newProfile(def inputSources, def outputSources) {
         GStringTemplateEngine engine = new GStringTemplateEngine()
+
 
         def expandoSources = []
         inputSources.each { key, value ->
