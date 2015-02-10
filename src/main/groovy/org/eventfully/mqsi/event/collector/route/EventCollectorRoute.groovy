@@ -23,7 +23,7 @@ class EventCollectorRoute extends RouteBuilder {
 
 
         from("{{eventRoute.from}}").routeId("{{eventRoute.id}}")
-                .log(LoggingLevel.INFO, "Event received")
+                .log(LoggingLevel.DEBUG, "Event received")
                 .convertBodyTo(String.class, "UTF-8")
                 .process { Exchange ex ->
             Message message = ex.in
@@ -32,10 +32,13 @@ class EventCollectorRoute extends RouteBuilder {
             String uniqueFlowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:uniqueFlowName".text()
             String eventName = event."wmb:eventPointData"."wmb:eventData"."wmb:eventIdentity"."@wmb:eventName".text()
             String creationTime = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:creationTime".text()
+            String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
+            String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
             String creationDate = creationTime?.substring(0, 17).replaceAll('[-:T]', '')
-            String fileName = "/${uniqueFlowName.replace('.', '/')}/${eventName}-${creationDate}-${ex.exchangeId}"
+            String fileName = "/${uniqueFlowName.replace('.', '/')}/${localTransactionId}_Step-${counter}_Date-${creationDate}_Event-${eventName}"
             message.setHeader(EVENT_RFH_FILE_NAME, fileName + ".rfh")
             message.setHeader(Exchange.FILE_NAME, fileName + ".xml")
+            log.info "Saving event: ${fileName}"
 
         }.to("{{eventRoute.toXml}}")
                 .process { Exchange ex ->
