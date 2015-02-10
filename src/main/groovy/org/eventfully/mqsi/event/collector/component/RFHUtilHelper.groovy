@@ -28,6 +28,31 @@ class RFHUtilHelper {
 
         MQMessage mqOutMessage = new MQMessage();
         mqOutMessage.characterSet = mqmd.codedCharSetId
+        mqOutMessage.format = mqmd.format
+        mqOutMessage.messageId = mqmd.msgId
+        mqOutMessage.correlationId = mqmd.correlId
+        mqOutMessage.encoding = mqmd.encoding
+        mqOutMessage.accountingToken = mqmd.accountingToken
+        mqOutMessage.expiry = mqmd.expiry
+        mqOutMessage.applicationOriginData = mqmd.applIdentityData
+        mqOutMessage.applicationOriginData = mqmd.applOriginData
+        mqOutMessage.backoutCount = mqmd.backoutCount
+        mqOutMessage.feedback = mqmd.feedback
+        mqOutMessage.messageFlags = mqmd.msgFlags
+        mqOutMessage.messageSequenceNumber = mqmd.msgSeqNumber
+        mqOutMessage.messageType = mqmd.msgType
+        mqOutMessage.offset = mqmd.offset
+        mqOutMessage.originalLength = mqmd.originalLength
+        mqOutMessage.persistence = mqmd.persistence
+        mqOutMessage.priority = mqmd.priority
+        mqOutMessage.putApplicationName = mqmd.putApplName
+        mqOutMessage.putApplicationType = mqmd.putApplType
+        //mqOutMessage.putDateTime = mqmd.putDateTime
+        mqOutMessage.replyToQueueManagerName = mqmd.replyToQMgr
+        mqOutMessage.replyToQueueName = mqmd.replyToQ
+        mqOutMessage.report = mqmd.report
+        mqOutMessage.userId = mqmd.userIdentifier
+        mqOutMessage.version = mqmd.version
 
         if (mqmd.format == MQConstants.MQFMT_RF_HEADER_2) {
             MQRFH2 mqrfh2 = new MQRFH2(indata1, mqmd.encoding, mqmd.codedCharSetId)
