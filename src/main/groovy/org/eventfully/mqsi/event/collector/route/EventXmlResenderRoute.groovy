@@ -26,6 +26,8 @@ class EventXmlResenderRoute extends RouteBuilder {
     @Autowired
     ResendConfiguration resendConfiguration
 
+    String noMatchQueue
+
     @Override
     public void configure() throws Exception {
 
@@ -42,8 +44,9 @@ class EventXmlResenderRoute extends RouteBuilder {
             // Add error handling if it is not an ComIbmMQInputNode
             String nodeDetail = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:node"."@wmb:detail".text()
             String resendQueue = resendConfiguration.findResendQueueForEventSource(flowName, eventSrc) ?: nodeDetail
+            resendQueue = resendQueue ? resendQueue : noMatchQueue
 
-            log.info("Found resend queue ${resendQueue} for flow: ${flowName} and event source ${eventSrc}")
+            log.info("Resend queue ${resendQueue} for flow: ${flowName} and event source ${eventSrc}")
 
             NodeList bitStream = event."wmb:bitstreamData"."wmb:bitstream"
             byte[] decodedBitStream = bitStream.text().decodeBase64()
