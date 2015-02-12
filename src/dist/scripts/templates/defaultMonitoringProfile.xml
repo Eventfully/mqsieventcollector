@@ -16,6 +16,7 @@
         </profile:eventPointDataQuery>
         <profile:applicationDataQuery>
             <profile:simpleContent profile:name="MsgId" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/MsgId"/></profile:simpleContent>
+            <profile:simpleContent profile:name="CorrelId" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/CorrelId"/></profile:simpleContent>
             <profile:simpleContent profile:name="CodedCharSetId" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/CodedCharSetId"/></profile:simpleContent>
             <profile:simpleContent profile:name="ReplyToQMgr" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/ReplyToQMgr"/></profile:simpleContent>
             <profile:simpleContent profile:name="ReplyToQ" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/ReplyToQ"/></profile:simpleContent>
