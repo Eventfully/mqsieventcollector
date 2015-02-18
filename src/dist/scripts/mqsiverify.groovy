@@ -10,7 +10,6 @@ def cli = new CliBuilder(
 
 cli.with
         {
-            h(longOpt: 'help', 'Show help', args: 0, argName: 'HELP', required: false)
             o(longOpt: 'original', 'The path to the directory of events from the original broker/bus', args: 1, argName: 'ORG_DIR', required: true)
             r(longOpt: 'regression', 'The path to the directory of events from the regression broker/bus', args: 1, argName: 'REG_DIR', required: true)
             s(longOpt: 'send', 'The path to the directory to copy input events for resend', args: 1, argName: 'SEND_DIR', required: true)
@@ -20,10 +19,7 @@ def opt = cli.parse(args)
 if (!opt) {
     return
 }
-if (opt.h) {
-    cli.usage()
-    return
-}
+
 
 
 

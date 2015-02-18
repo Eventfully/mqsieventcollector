@@ -71,3 +71,27 @@ This is a script with the primarily purpose of generating monitoringprofiles and
 ### Auto-create profile scripts for messageflow
 `mqsibrokerutil.bat -b config/IB9NODE -e default -f MessageFlow1 -c -a`
 
+# mqsiverify
+This is a script for running verifications.
+It requires the mqsieventcollector for finding event messages and for resending to the regression WMQ.
+
+## Usage
+`usage: mqsiverify.groovy [options]`
+
+    Available options (use -h for help):
+     -o,--original <ORG_DIR>     The path to the directory of events from the
+                                 original broker/bus
+     -r,--regression <REG_DIR>   The path to the directory of events from the
+                                 regression broker/bus
+     -s,--send <SEND_DIR>        The path to the directory to copy input
+                                 events for resend
+     -w,--wait <WAIT>            The timeout in seconds before checking for
+                                 regression events, default 15 seconds
+
+    Information provided via above options is used to generate printed string.
+
+
+## Examples
+
+### Verify
+`mqsiverify.bat -o C:\var\mqsiverify\original -r C:\var\mqsiverify\regression -s C:\var\mqsiverify\resend`
