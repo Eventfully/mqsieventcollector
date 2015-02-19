@@ -10,9 +10,9 @@ def cli = new CliBuilder(
 
 cli.with
         {
-            o(longOpt: 'original', 'The path to the directory of events from the original broker/bus', args: 1, argName: 'ORG_DIR', required: true)
-            r(longOpt: 'regression', 'The path to the directory of events from the regression broker/bus', args: 1, argName: 'REG_DIR', required: true)
-            s(longOpt: 'send', 'The path to the directory to copy input events for resend', args: 1, argName: 'SEND_DIR', required: true)
+            i(longOpt: 'input', 'The path to the directory of events from the original broker/bus', args: 1, argName: 'INPUT_DIR', required: true)
+            o(longOpt: 'output', 'The path to the directory of events from the broker/bus under test', args: 1, argName: 'OUTPUT_DIR', required: true)
+            r(longOpt: 'resend', 'The path to the directory to copy input events for resend', args: 1, argName: 'RESEND_DIR', required: false)
             w(longOpt: 'wait', 'The timeout in seconds before checking for regression events, default 15 seconds', args: 1, argName: 'WAIT', required: false)
         }
 def opt = cli.parse(args)
@@ -20,15 +20,13 @@ if (!opt) {
     return
 }
 
-
-
-
 def found = []
 def inputEvents = []
 
-String orgRoot = opt.o
-String regRoot = opt.r
-String resendDir = opt.s
+String orgRoot = opt.i
+String regRoot = opt.o
+String resendDir = opt.r
+boolean resendFlag = opt.r ? true : false
 int waitTimeOut = opt.w ? (opt.w as int) * 1000 : 15000
 
 srcDir = new File(orgRoot)
@@ -41,16 +39,19 @@ srcDir.traverse(
             found.add file
         }
 
+println "INFO: Number of test input events: ${found.size()}"
+
 AntBuilder ant = new AntBuilder()
 
 found.each { File file ->
+
     def event = new XmlParser(false, false).parseText(file.text)
     String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
+
     String msgId = event."wmb:applicationData"."wmb:simpleContent".find { it."@wmb:name" == "MsgId" }."@wmb:value"
     String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
     File rfhFile = new File(file.getCanonicalPath().replace('xml', 'rfh'))
     OrgInputEvent orgInputEvent = new OrgInputEvent(localTransactionId: localTransactionId, fileSize: rfhFile.size(), path: file.path, messageId: msgId, file: file, counter: counter)
-
 
     File testParent = file.getParentFile()
     List outputEvents = []
@@ -67,17 +68,17 @@ found.each { File file ->
     inputEvents.add(orgInputEvent)
 }
 
-
-
 inputEvents.each { OrgInputEvent inputEvent ->
 
-    println "Copy input event to resend"
-    // ant.copy( file:"$inputEvent.path", todir:"$resendDir")
+    println "INFO: Test for original sequence with localTransactionId: ${inputEvent.localTransactionId}"
 
-    println "WAIT..."
-    Thread.sleep(waitTimeOut)
+    if (resendFlag) {
+        println "INFO: Resend by copying file: ${inputEvent.path} to ${resendDir}"
+        ant.copy( file:"$inputEvent.path", todir:"$resendDir")
 
-    println "Check output"
+        println "INFO: Waiting ${waitTimeOut / 1000} seconds for new output events"
+        Thread.sleep(waitTimeOut)
+    }
 
     def regDir = new File(regRoot)
 
@@ -85,9 +86,12 @@ inputEvents.each { OrgInputEvent inputEvent ->
         containsregexp expression: ".*${inputEvent.messageId}.*"
     }*.file
 
+    println "INFO: Found ${result.size()} sequences to verify."
+
     result.each { file ->
         def event = new XmlParser(false, false).parseText(file.text)
         String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
+
         String msgId = event."wmb:applicationData"."wmb:simpleContent".find { it."@wmb:name" == "MsgId" }."@wmb:value"
         String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
         File rfhFile = new File(file.getCanonicalPath().replace('xml', 'rfh'))
@@ -114,27 +118,31 @@ inputEvents.each { OrgInputEvent inputEvent ->
 }
 
 def verify(def inputEvent) {
-    boolean numberOfEventsSame
-    boolean sameSequence
-    boolean allSameLength
+
+    println "INFO: Verifying sequences for localTransactionId ${inputEvent.localTransactionId}"
+
     boolean hasOutput = (inputEvent.regInputEvents)
-
-    println hasOutput
-
-    println "number of original output events ${inputEvent.outputEvents.size()}"
-    println "number of regression input events ${inputEvent.regInputEvents.size()}"
 
     def orgOutputSizes = inputEvent.outputEvents.collect { evt -> evt.fileSize }
 
-
     inputEvent.regInputEvents.each {
-        println "Verifying output same number of events: ${inputEvent.outputEvents.size()} == ${it.outputEvents.size()}"
+
+        println "INFO: \tVerifying output sequence with localTransactionId ${it.localTransactionId}"
+        boolean sameNumberOfEvents = (inputEvent.outputEvents.size() == it.outputEvents.size() )
+
+        println "INFO: \t\tSame number of events: ${sameNumberOfEvents}"
+
+        if (! sameNumberOfEvents) {
+            println "WARNING: \t\tVerification failed, number of reference output events ${inputEvent.outputEvents.size()}, found ${it.outputEvents.size()} events."
+        }
+
         def fileSizesOutput = it.outputEvents.collect { evt -> evt.fileSize }
-        println "FileSizes: orginal output : ${orgOutputSizes} and regr. output ${fileSizesOutput} match: ${(orgOutputSizes == fileSizesOutput)}"
-
+        boolean outputFileSizesMatch = ( orgOutputSizes == fileSizesOutput )
+        println "INFO: \t\tOutput file sizes match: ${outputFileSizesMatch}"
+        if (! outputFileSizesMatch) {
+            println "WARNING: \t\tFileSizes: input ${orgOutputSizes} and output ${fileSizesOutput}"
+        }
     }
-
-
 }
 
 
