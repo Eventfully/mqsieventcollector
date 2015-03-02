@@ -30,12 +30,11 @@ class RFHUtilHelper {
         mqOutMessage.characterSet = mqmd.codedCharSetId
         mqOutMessage.format = mqmd.format
         mqOutMessage.messageId = mqmd.msgId
-      //  mqOutMessage.correlationId = mqmd.correlId
-        mqOutMessage.correlationId = mqmd.msgId
+        mqOutMessage.correlationId = mqmd.correlId
         mqOutMessage.encoding = mqmd.encoding
         mqOutMessage.accountingToken = mqmd.accountingToken
         mqOutMessage.expiry = mqmd.expiry
-        mqOutMessage.applicationOriginData = mqmd.applIdentityData
+        mqOutMessage.applicationIdData = mqmd.applIdentityData
         mqOutMessage.applicationOriginData = mqmd.applOriginData
         mqOutMessage.backoutCount = mqmd.backoutCount
         mqOutMessage.feedback = mqmd.feedback
