@@ -20,6 +20,7 @@
             <profile:simpleContent profile:name="CodedCharSetId" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/CodedCharSetId"/></profile:simpleContent>
             <profile:simpleContent profile:name="ReplyToQMgr" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/ReplyToQMgr"/></profile:simpleContent>
             <profile:simpleContent profile:name="ReplyToQ" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/ReplyToQ"/></profile:simpleContent>
+            <profile:simpleContent profile:name="ApplIdentityData" profile:dataType="string"><profile:valueQuery profile:queryText="\$Root/MQMD/ApplIdentityData"/></profile:simpleContent>
         </profile:applicationDataQuery>
         <profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}"
                                     profile:encoding="${it.bitstreamEncoding}"/>
