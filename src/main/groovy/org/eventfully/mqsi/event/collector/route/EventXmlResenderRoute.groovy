@@ -27,6 +27,7 @@ class EventXmlResenderRoute extends RouteBuilder {
     ResendConfiguration resendConfiguration
 
     String noMatchQueue
+    Boolean overrideApplIdentityData
 
     @Override
     public void configure() throws Exception {
@@ -39,6 +40,8 @@ class EventXmlResenderRoute extends RouteBuilder {
 
             Message message = ex.in
             def event = new XmlParser(false, false).parseText(message.body)
+            String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
+
             String flowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:name".text()
             String eventSrc = event."wmb:eventPointData"."wmb:eventData"."@wmb:eventSourceAddress".text()
             // Add error handling if it is not an ComIbmMQInputNode
@@ -52,6 +55,10 @@ class EventXmlResenderRoute extends RouteBuilder {
             byte[] decodedBitStream = bitStream.text().decodeBase64()
 
             MQMessage mqMessage = rfhUtilHelper.extract(decodedBitStream)
+            if (overrideApplIdentityData){
+                log.debug "Overriding applicationIdData using localTransactionId: $localTransactionId"
+                mqMessage.applicationIdData = localTransactionId
+            }
             mqSender.resendToQueue(mqMessage, resendQueue)
 
         }

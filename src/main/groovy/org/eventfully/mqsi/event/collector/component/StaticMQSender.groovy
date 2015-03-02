@@ -2,6 +2,7 @@ package org.eventfully.mqsi.event.collector.component
 
 import com.ibm.mq.MQC
 import com.ibm.mq.MQMessage
+import com.ibm.mq.MQPutMessageOptions
 import com.ibm.mq.MQQueue
 import com.ibm.mq.MQQueueManager
 import com.ibm.mq.constants.MQConstants
@@ -27,10 +28,15 @@ class StaticMQSender {
         connProps.put(MQC.CHANNEL_PROPERTY, channel)
         connProps.put(MQC.PORT_PROPERTY, port)
 
-        MQQueueManager queueManager = new MQQueueManager(qmgr, connProps)
-        MQQueue mqQueue = queueManager.accessQueue(queueName, MQConstants.MQOO_OUTPUT);
+        int openOptions = MQConstants.MQOO_OUTPUT + MQConstants.MQOO_SET_IDENTITY_CONTEXT;
 
-        mqQueue.put(mqMessage)
+        MQQueueManager queueManager = new MQQueueManager(qmgr, connProps)
+        MQQueue mqQueue = queueManager.accessQueue(queueName,openOptions)
+        MQPutMessageOptions pmo = new MQPutMessageOptions()
+        pmo.options = MQConstants.MQPMO_FAIL_IF_QUIESCING | MQConstants.MQPMO_SET_IDENTITY_CONTEXT | MQConstants.MQPMO_SYNCPOINT;
+
+        mqQueue.put(mqMessage,pmo)
+        log.debug "Sending msg with applicationidentidata: ${mqMessage.applicationIdData}"
         mqQueue.close();
         queueManager.disconnect()
 

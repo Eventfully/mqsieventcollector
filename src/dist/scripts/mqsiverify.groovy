@@ -47,18 +47,20 @@ found.each { File file ->
 
     def event = new XmlParser(false, false).parseText(file.text)
     String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
+    String uniqueFlowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:uniqueFlowName".text()
 
     String msgId = event."wmb:applicationData"."wmb:simpleContent".find { it."@wmb:name" == "MsgId" }."@wmb:value"
     String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
     File rfhFile = new File(file.getCanonicalPath().replace('xml', 'rfh'))
-    OrgInputEvent orgInputEvent = new OrgInputEvent(localTransactionId: localTransactionId, fileSize: rfhFile.size(), path: file.path, messageId: msgId, file: file, counter: counter)
+    OrgInputEvent orgInputEvent = new OrgInputEvent(flowName: uniqueFlowName, localTransactionId: localTransactionId, fileSize: rfhFile.size(), path: file.path, messageId: msgId, file: file, counter: counter)
 
     File testParent = file.getParentFile()
     List outputEvents = []
     testParent.traverse(
             type: FILES,
-            nameFilter: ~/^${localTransactionId}.*Out.(xml)$/,
+            nameFilter: ~/^${localTransactionId}_Step.*Out.(xml)$/,
             {
+                //println "DEBUG: Found matching out event for input : ${it.name}"
                 File rfhFileOut = new File(it.getCanonicalPath().replace('xml', 'rfh'))
                 outputEvents.add(new OrgOutputEvent(localTransactionId: localTransactionId, fileSize: rfhFileOut.size(), path: it.path, file: it))
             }
@@ -71,6 +73,7 @@ found.each { File file ->
 inputEvents.each { OrgInputEvent inputEvent ->
 
     println "INFO: Test for original sequence with localTransactionId: ${inputEvent.localTransactionId}"
+    println "INFO: ${inputEvent.flowName}"
 
     if (resendFlag) {
         println "INFO: Resend by copying file: ${inputEvent.path} to ${resendDir}"
@@ -81,28 +84,41 @@ inputEvents.each { OrgInputEvent inputEvent ->
     }
 
     def regDir = new File(regRoot)
+    def result = []
+    regDir.traverse(
+            type: FILES,
+            nameFilter: ~/.*Step-1.*(xml)$/,
+    )
+            { File file ->
+                if (file.text.contains(inputEvent.localTransactionId)){
+                    println "DEBUG: Found matching event with same localTransactionId in file: ${file.name}"
+                    result.add(file)
+                }
+            }
 
-    def result = new AntBuilder().fileset(dir: "$regRoot", includes: '**/*Step-1*.xml') {
-        containsregexp expression: ".*${inputEvent.messageId}.*"
-    }*.file
+
+    //  def result = new AntBuilder().fileset(dir: "$regRoot", includes: '**/*Step-1*.xml') {
+    //      containsregexp expression: ".*${inputEvent.messageId}.*"
+    //  }*.file
 
     println "INFO: Found ${result.size()} sequences to verify."
 
     result.each { file ->
         def event = new XmlParser(false, false).parseText(file.text)
         String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
+        String uniqueFlowName = event."wmb:eventPointData"."wmb:messageFlowData"."wmb:messageFlow"."@wmb:uniqueFlowName".text()
 
         String msgId = event."wmb:applicationData"."wmb:simpleContent".find { it."@wmb:name" == "MsgId" }."@wmb:value"
         String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
         File rfhFile = new File(file.getCanonicalPath().replace('xml', 'rfh'))
 
-        RegInputEvent regInputEvent = new RegInputEvent(orgLocalTransactionId: inputEvent.localTransactionId, localTransactionId: localTransactionId, fileSize: rfhFile.size(), path: file.path, messageId: msgId, file: file, counter: counter)
+        RegInputEvent regInputEvent = new RegInputEvent(flowName: uniqueFlowName, orgLocalTransactionId: inputEvent.localTransactionId, localTransactionId: localTransactionId, fileSize: rfhFile.size(), path: file.path, messageId: msgId, file: file, counter: counter)
 
         File testParent = file.getParentFile()
         List outputEvents = []
         testParent.traverse(
                 type: FILES,
-                nameFilter: ~/^${localTransactionId}.*Out.(xml)$/,
+                nameFilter: ~/^${localTransactionId}_Step.*Out.(xml)$/,
                 {
                     File rfhFileOut = new File(it.getCanonicalPath().replace('xml', 'rfh'))
                     outputEvents.add(new RegOutputEvent(localTransactionId: localTransactionId, fileSize: rfhFileOut?.size(), path: it.path, file: it))
@@ -137,7 +153,7 @@ def verify(def inputEvent) {
         }
 
         def fileSizesOutput = it.outputEvents.collect { evt -> evt.fileSize }
-        boolean outputFileSizesMatch = ( orgOutputSizes == fileSizesOutput )
+        boolean outputFileSizesMatch = ( orgOutputSizes.sort() == fileSizesOutput.sort() )
         println "INFO: \t\tOutput file sizes match: ${outputFileSizesMatch}"
         if (! outputFileSizesMatch) {
             println "WARNING: \t\tFileSizes: input ${orgOutputSizes} and output ${fileSizesOutput}"
@@ -149,6 +165,7 @@ def verify(def inputEvent) {
 return ""
 
 class OrgInputEvent {
+    String flowName
     String localTransactionId
     String fileSize
     String path
@@ -164,6 +181,7 @@ class OrgOutputEvent extends OrgInputEvent {
 }
 
 class RegInputEvent {
+    String flowName
     String orgLocalTransactionId
     String localTransactionId
     String fileSize
