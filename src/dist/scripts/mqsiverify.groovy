@@ -1,5 +1,7 @@
 package scripts
 
+import java.security.MessageDigest
+
 import static groovy.io.FileType.*
 import static groovy.io.FileVisitResult.*
 
@@ -83,6 +85,8 @@ inputEvents.each { OrgInputEvent inputEvent ->
         Thread.sleep(waitTimeOut)
     }
 
+    String localTransactionIdMD5 = shorterGroovyMD5Hash(inputEvent.localTransactionId)
+
     def regDir = new File(regRoot)
     def result = []
     regDir.traverse(
@@ -90,7 +94,7 @@ inputEvents.each { OrgInputEvent inputEvent ->
             nameFilter: ~/.*Step-1.*(xml)$/,
     )
             { File file ->
-                if (file.text.contains(inputEvent.localTransactionId)){
+                if (file.text.contains(localTransactionIdMD5)){
                     println "DEBUG: Found matching event with same localTransactionId in file: ${file.name}"
                     result.add(file)
                 }
@@ -131,6 +135,13 @@ inputEvents.each { OrgInputEvent inputEvent ->
     }
     verify(inputEvent)
 
+}
+
+def shorterGroovyMD5Hash(somethingToHash){
+    MessageDigest.getInstance("MD5").
+            digest(somethingToHash.getBytes("UTF-8")).
+            encodeHex().
+            toString()
 }
 
 def verify(def inputEvent) {

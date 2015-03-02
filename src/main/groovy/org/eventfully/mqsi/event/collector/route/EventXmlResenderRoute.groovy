@@ -12,6 +12,7 @@ import org.eventfully.mqsi.event.collector.config.ResendConfiguration
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.stereotype.Component
+import java.security.MessageDigest
 
 @Component
 @ConfigurationProperties(prefix = "xmlResenderRoute")
@@ -57,12 +58,19 @@ class EventXmlResenderRoute extends RouteBuilder {
             MQMessage mqMessage = rfhUtilHelper.extract(decodedBitStream)
             if (overrideApplIdentityData){
                 log.debug "Overriding applicationIdData using localTransactionId: $localTransactionId"
-                mqMessage.applicationIdData = localTransactionId
+                mqMessage.applicationIdData = shorterGroovyMD5Hash(localTransactionId)
             }
             mqSender.resendToQueue(mqMessage, resendQueue)
 
         }
         .log(LoggingLevel.INFO, "Message resent")
 
+    }
+
+    def shorterGroovyMD5Hash(somethingToHash){
+        MessageDigest.getInstance("MD5").
+                digest(somethingToHash.getBytes("UTF-8")).
+                encodeHex().
+                toString()
     }
 }
