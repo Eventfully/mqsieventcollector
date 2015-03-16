@@ -15,7 +15,7 @@ apply plugin: 'spring-boot'
 ext {
 
     ext {
-        camelVersion = '2.15-SNAPSHOT'
+        camelVersion = '2.15.0'
         MQ_JAVA_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/lib'
         MQSI_CLASSES = System.getenv()['MQSI_HOME'] + '/classes'
     }
@@ -28,7 +28,6 @@ jar {
 
 repositories {
     mavenCentral()
-    maven { url "https://repository.apache.org/content/repositories/snapshots/" }
 }
 
 dependencyManagement {
