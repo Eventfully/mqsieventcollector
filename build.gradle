@@ -53,6 +53,7 @@ dependencies {
     compile "org.apache.camel:camel-spring-boot:$camelVersion"
     compile "org.apache.camel:camel-groovy:$camelVersion"
     compile "org.apache.camel:camel-jms:$camelVersion"
+    compile 'joda-time:joda-time'
     //WMQ
     compile fileTree(dir: MQ_JAVA_LIB_DIR, include: '*.jar')
     compile fileTree(dir: MQSI_CLASSES, include: 'ConfigManagerProxy.jar')

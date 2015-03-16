@@ -7,7 +7,8 @@ import org.apache.camel.builder.RouteBuilder
 import org.eventfully.mqsi.event.collector.component.MqsiEventParser
 import org.springframework.stereotype.Component
 
-import java.text.SimpleDateFormat
+import org.joda.time.*
+import org.joda.time.format.*
 
 @Component
 class EventCollectorRoute extends RouteBuilder {
@@ -22,6 +23,8 @@ class EventCollectorRoute extends RouteBuilder {
                 .to("{{eventRoute.toFailure}}")
 
 
+        final DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+
         from("{{eventRoute.from}}").routeId("{{eventRoute.id}}")
                 .log(LoggingLevel.DEBUG, "Event received")
                 .convertBodyTo(String.class, "UTF-8")
@@ -35,7 +38,9 @@ class EventCollectorRoute extends RouteBuilder {
             String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
             String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
             String creationDate = creationTime?.substring(0, 17).replaceAll('[-:T]', '')
-            String fileName = "/${uniqueFlowName.replace('.', '/')}/${localTransactionId}_Step-${counter}_Date-${creationDate}_Event-${eventName}"
+            DateTime dt = fmt.parseDateTime(creationTime);
+
+            String fileName = "/${uniqueFlowName.replace('.', '/')}/${dt.year}/${dt.monthOfYear}/${dt.dayOfMonth}/${localTransactionId}_Step-${counter}_Event-${eventName}"
             message.setHeader(EVENT_RFH_FILE_NAME, fileName + ".rfh")
             message.setHeader(Exchange.FILE_NAME, fileName + ".xml")
             log.info "Saving event: ${fileName}"
