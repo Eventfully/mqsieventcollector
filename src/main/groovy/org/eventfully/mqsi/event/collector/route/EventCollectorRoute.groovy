@@ -23,7 +23,7 @@ class EventCollectorRoute extends RouteBuilder {
                 .to("{{eventRoute.toFailure}}")
 
 
-        final DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
+        final DateTimeFormatter fmt = ISODateTimeFormat.dateElementParser()
 
         from("{{eventRoute.from}}").routeId("{{eventRoute.id}}")
                 .log(LoggingLevel.DEBUG, "Event received")
@@ -38,7 +38,7 @@ class EventCollectorRoute extends RouteBuilder {
             String counter = event."wmb:eventPointData"."wmb:eventData"."wmb:eventSequence"."@wmb:counter".text()
             String localTransactionId = event."wmb:eventPointData"."wmb:eventData"."wmb:eventCorrelation"."@wmb:localTransactionId".text()
             String creationDate = creationTime?.substring(0, 17).replaceAll('[-:T]', '')
-            DateTime dt = fmt.parseDateTime(creationTime);
+            DateTime dt = fmt.parseDateTime(creationTime.substring(0,10))
 
             String fileName = "/${uniqueFlowName.replace('.', '/')}/${dt.year}/${dt.monthOfYear}/${dt.dayOfMonth}/${localTransactionId}_Step-${counter}_Event-${eventName}"
             message.setHeader(EVENT_RFH_FILE_NAME, fileName + ".rfh")
