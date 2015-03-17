@@ -23,7 +23,7 @@ ext {
 
 jar {
     baseName = 'mqsieventcollector'
-    version = '0.0.2'
+    version = '0.1.0'
 }
 
 repositories {
@@ -32,7 +32,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom 'io.spring.platform:platform-bom:1.1.0.RELEASE'
+        mavenBom 'io.spring.platform:platform-bom:1.1.1.RELEASE'
     }
 }
 
