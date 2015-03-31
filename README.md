@@ -36,3 +36,8 @@ mqsichangeflowmonitoring IB9NODE -e test -f TotalPurchaseOrderFlow -c active
 
 Note that a Developer Edition of IIB is readily available through IBM's website.
 
+## Install as a service on Windows using NSSM
+- Download NSSM https://nssm.cc/
+- run nssm.exe install <serviceName>, this opens up a graphical interface where you easily can configure the rest.
+- The rest is browsing to the startcollector.bat and possibly also changing the user who runs the service.
+

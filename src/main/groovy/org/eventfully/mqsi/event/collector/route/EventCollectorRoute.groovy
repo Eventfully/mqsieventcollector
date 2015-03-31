@@ -26,6 +26,7 @@ class EventCollectorRoute extends RouteBuilder {
         final DateTimeFormatter fmt = ISODateTimeFormat.dateElementParser()
 
         from("{{eventRoute.from}}").routeId("{{eventRoute.id}}")
+                .autoStartup("{{eventRoute.enabled}}")
                 .log(LoggingLevel.DEBUG, "Event received")
                 .convertBodyTo(String.class, "UTF-8")
                 .process { Exchange ex ->

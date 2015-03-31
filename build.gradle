@@ -17,13 +17,14 @@ ext {
     ext {
         camelVersion = '2.15.0'
         MQ_JAVA_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/lib'
+        MQ_JAVA_JRE_LIB_DIR = System.getenv()['MQ_JAVA_INSTALL_PATH'] + '/jre/lib'
         MQSI_CLASSES = System.getenv()['MQSI_HOME'] + '/classes'
     }
 }
 
 jar {
     baseName = 'mqsieventcollector'
-    version = '0.1.0'
+    version = '0.1.1'
 }
 
 repositories {
@@ -55,6 +56,7 @@ dependencies {
     compile 'joda-time:joda-time'
     //WMQ
     compile fileTree(dir: MQ_JAVA_LIB_DIR, include: '*.jar')
+    compile fileTree(dir: MQ_JAVA_JRE_LIB_DIR, include: 'ibmjsseprovider2.jar')
     compile fileTree(dir: MQSI_CLASSES, include: 'ConfigManagerProxy.jar')
 
     //test
