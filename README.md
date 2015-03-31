@@ -24,6 +24,11 @@ The project is built using Gradle. As long as you have a JRE on your path you ca
 bundled gradle wrapper instead (gradlew on Linux or gradlew.bat on Windows). It will download an embedded
 gradle jar-file and run so you don't need to install anything.
 
+### Build
+Use `gradlew installApp` or `gradlew distZip` to build.
+installApp does a local install under build/install directory
+distZip does a local zip distribution with all required artefacts under build/distributions
+
 ## Test using IBM Integration Bus V9
 The simplest way to enable and test this using for instance IIB V9 is to start from the 
 Samples and Tutorials -> Monitoring -> WebSphere Business Monitor sample
