@@ -7,7 +7,6 @@ def cli = new CliBuilder(
         header: '\nAvailable options (use -h for help):\n',
         footer: '\nInformation provided via above options is used to generate printed string.\n')
 
-
 cli.with
         {
             h(longOpt: 'help', 'Show help', args: 0, argName: 'HELP', required: false)
@@ -20,8 +19,8 @@ cli.with
             f(longOpt: 'flow', 'The message flow name, note that you must specify eg as well using this option.', args: 1, argName: 'flow', required: false)
             w(longOpt: 'workdir', 'The working directory for generating output files, defaults to current directory', args: 1, argName: 'WORKDIR', required: false)
             s(longOpt: 'sources', 'eventsources=eventname key-value for generating events, mandatory for command profile, can be repeated multiple times.', args: 2, valueSeparator: '=', argName: 'SOURCES', required: false)
+            ap(longOpt: 'app', 'The application name, note that you must specify eg as well using this option.', args: 1, argName: 'app', required: false)
             a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is enabling MQInputNodes with transaction.start with payload and configured but disabled MQOutputNodes terminal.in with payload.', args: 0, argName: 'AUTO', required: false)
-            t(longOpt: 'transfer', 'If the creeated profiles should be transferd to remote location', args: 1, argName: 'TRANSFER', required: false)
         }
 def opt = cli.parse(args)
 if (!opt || opt.h) {
@@ -36,10 +35,11 @@ String qmgr = opt.q ?: null
 Command command = opt.c ? Command.profile : Command.list
 String egName = opt.e ?: null
 String msgFlowName = opt.f ?: null
+String applicationName = opt.ap ?: null
 def sources = opt.s ?: null
 String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
-String transfer = opt.t ?:null
+
 BrokerConnectionParameters bcp
 
 if (brokerFile) {
@@ -71,12 +71,28 @@ String brokerName = proxy.name
 println "Connected to: '${brokerName}'"
 
 if (command == Command.list) {
-    if (msgFlowName && egName) {
+    if (msgFlowName && egName && !applicationName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
         displayFlowInExecutionGroup(egp, msgFlowName)
         return displayFlowDetails(mfp)
+        
+      } else if (applicationName && msgFlowName && egName) {
+        ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
+        assert egp
+        ApplicationProxy app = egp.getApplicationByName(applicationName)
+        displayAppFlowInExecutionGroup(egp, applicationName)
+        return displayAppFlowDetails(app, msgFlowName)
+    
+    } else if (applicationName && egName) {
+        ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
+        assert egp
+        ApplicationProxy app = egp.getApplicationByName(applicationName)
+        displayAppFlowInExecutionGroup(egp, applicationName)
+        return displayAppDetails(app, egp)
+        return displayFlowDetails(mfp)
+       
     } else if (egName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
@@ -87,12 +103,11 @@ if (command == Command.list) {
 } else if (command == Command.profile) {
     String profile = null
     def outputEventSources
-    def allFlows =[]
     if (sources) {
         def sourceMap = opt.ss.toSpreadMap()
         sourceMap.each { k, v -> println k + " " + v }
         profile = MonitoringProfileFactory.newProfile(sourceMap)
-    } else if (autoCreateProfile && msgFlowName && egName) {
+    } else if (autoCreateProfile && msgFlowName && egName && !applicationName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
         MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
@@ -100,81 +115,41 @@ if (command == Command.list) {
         Map sourceMQOutputMap = createFlowOutputMQEventSourcesMap(mfp)
         outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
         profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
-    } else if (autoCreateProfile && egName && !msgFlowName) {
+    } else if (autoCreateProfile && msgFlowName && egName && applicationName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
-        allFlows.add('test')
-        egp.getMessageFlows().each { MessageFlowProxy mfp ->
-        
-          MessageFlowProxy mfps = egp.getMessageFlowByName(mfp.name)
-          def sourceMQInputMap = createFlowInputMQEventSourcesMap(mfps)
-          Map sourceMQOutputMap = createFlowOutputMQEventSourcesMap(mfps)
-          
-          outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
-          profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
-        
-          File outputDir = new File(workDirName + "/${mfp.name}")
-          outputDir.deleteDir()
-          outputDir.mkdir()
-          String xmlProfileFileName = "${mfp.name}-profile.xml"
-          File outputProfileFile = new File(outputDir, xmlProfileFileName)
-          outputProfileFile.setText(profile, "UTF-8")
-          println "profile xml created: ${outputProfileFile}"
-
-          println "creating mqsicommand files"
-          createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, mfp.name, xmlProfileFileName, outputEventSources)
-          if (transfer) {
-            transferMonitoring(mfp.name, transfer, workDirName)
-          }
-        }
-        
-        
-    
+        ApplicationProxy app = egp.getApplicationByName(applicationName)
+        MessageFlowProxy mfp = app.getMessageFlowByName(msgFlowName)
+        def sourceMQInputMap = createFlowInputMQEventSourcesMap(mfp)
+        Map sourceMQOutputMap = createFlowOutputMQEventSourcesMap(mfp)
+        outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
+        profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
     } else {
         println "Wrong arguments supplied for profile."
         cli.usage()
         return
     }
-    
-    if (!allFlows) {
-      println profile
-      File outputDir = new File(workDirName + "/${msgFlowName}")
-      outputDir.deleteDir()
-      outputDir.mkdir()
-      String xmlProfileFileName = "${msgFlowName}-profile.xml"
-      File outputProfileFile = new File(outputDir, xmlProfileFileName)
-      outputProfileFile.setText(profile, "UTF-8")
-      println "profile xml created: ${outputProfileFile}"
 
-      println "creating mqsicommand files"
+    println profile
+    File outputDir = new File(workDirName + "/${msgFlowName}")
+    outputDir.deleteDir()
+    outputDir.mkdir()
+    String xmlProfileFileName = "${msgFlowName}-profile.xml"
+    File outputProfileFile = new File(outputDir, xmlProfileFileName)
+    outputProfileFile.setText(profile, "UTF-8")
+    println "profile xml created: ${outputProfileFile}"
+
+    println "creating mqsicommand files"
+    if (applicationName) {
+      createMqsiCommandFilesForApplicationsUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources, applicationName)
+    } else {
       createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources)
     }
-    
 
 } else {
     println "not implemented yet"
     return
 }
-def transferMonitoring(String nameOfDir, String password, String sourceDir){
-    println "Transfer to remote location"
-    def filter = new File('../config/application.properties')
-    def props = new java.util.Properties()
-    props.load(new FileInputStream(filter))
-    def config = new ConfigSlurper().parse(props)
-
-    def transferCommand = config.transfer.user + '@' + config.transfer.host + ':' + config.transfer.dir
-    def ant = new AntBuilder()
-    ant.scp(
-            todir:transferCommand,
-            trust: true,
-            password: password){
-        fileset(dir:sourceDir) {
-            include(name: '/' + nameOfDir +'/')
-        }
-    }
-
-}
-
 
 def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources) {
     String exportFileName = "%CD%\\exported-" + profileXmlFileName
@@ -204,7 +179,40 @@ def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, Stri
         File templateFile = new File(templateDirName, templateFileName)
         def engine = new GStringTemplateEngine()
         def activeTemplate = engine.createTemplate(templateFile).make(binding)
-        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "sh"))
+        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "cmd"))
+        ouputFile.text = activeTemplate.toString()
+    }
+}
+def createMqsiCommandFilesForApplicationsUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources, String applicationName) {
+    String exportFileName = "%CD%\\exported-" + profileXmlFileName
+
+    def binding = ["brokerName"        : brokerName,
+                   "egName"            : egName,
+                   "msgFlowName"       : msgFlowName,
+                   "applicationName"   : applicationName, 
+                   "profileFileName"   : profileXmlFileName,
+                   "profileName"       : msgFlowName,
+                   "exportFileName"    : exportFileName,
+                   "outputEventSources": outputEventSources]
+
+    def templateFiles = ["activateFlowEventsApp.template",
+                         "createMonitoringProfileApp.template",
+                         "deleteMonitoringProfileApp.template",
+                         "exportFlowMonitoringProfileApp.template",
+                         "inactivateFlowEventsApp.template",
+                         "listAllConfigurableEventsInFlowApp.template",
+                         "listAllConfiguredEventsInFlowApp.template",
+                         "updateMonitoringProfileApp.template",
+                         "enableMQOutputEventsApp.template",
+                         "disableMQOutputEventsApp.template"]
+
+    String templateDirName = System.properties.getProperty('user.dir') + "/templates"
+
+    templateFiles.each { templateFileName ->
+        File templateFile = new File(templateDirName, templateFileName)
+        def engine = new GStringTemplateEngine()
+        def activeTemplate = engine.createTemplate(templateFile).make(binding)
+        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "cmd"))
         ouputFile.text = activeTemplate.toString()
     }
 }
@@ -219,12 +227,21 @@ def listFlowsInExecutionGroup(ExecutionGroupProxy egp) {
     egp.getMessageFlows().each { MessageFlowProxy mfp ->
         println "\t\tMF: '${mfp.name}' in EG:'${egp.name}' is ${mfp.isRunning() ? 'running' : 'stopped'}"
     }
+    egp.getApplications().each { ApplicationProxy app ->
+        println "\t\tAPP: '${app.name}' in EG:'${egp.name}' is ${app.isRunning() ? 'running' : 'stopped'}"
+    }
 }
 
 def displayFlowInExecutionGroup(ExecutionGroupProxy egp, String msgFlowName) {
     MessageFlowProxy mfp = egp.getMessageFlowByName(msgFlowName)
     assert mfp
     println "\t\tMF: '${mfp.name}' in EG:'${egp.name}' is ${mfp.isRunning() ? 'running' : 'stopped'}"
+}
+
+def displayAppFlowInExecutionGroup(ExecutionGroupProxy egp, String applicationName) {
+    ApplicationProxy app = egp.getApplicationByName(applicationName)
+    assert app
+    println "\t\tAPP: '${app.name}' in EG:'${egp.name}' is ${app.isRunning() ? 'running' : 'stopped'}"
 }
 
 def displayFlowDetails(MessageFlowProxy mfp) {
@@ -242,7 +259,37 @@ def displayFlowDetails(MessageFlowProxy mfp) {
         }
     }
 }
+def displayAppDetails(ApplicationProxy app, ExecutionGroupProxy egp) {
+    if (app.isRunning()) {
+       
+        println "\t\t\t\tFlows in Application"
+        app.getMessageFlows().each { MessageFlowProxy mfp ->
+         println "\t\tMF: '${mfp.name}' in EG:'${egp.name}' is ${mfp.isRunning() ? 'running' : 'stopped'}"
+        }
+        
+       
+    }
+}
+def displayAppFlowDetails(ApplicationProxy app, String msgFlowName) {
+    if (app.isRunning()) {
+     
+       MessageFlowProxy mfp = app.getMessageFlowByName(msgFlowName)
+       println app.getRuntimeProperty('This/monitoring')
+       if (mfp.isRunning()) {
+        def monitoring = mfp.getRuntimeProperty('This/monitoring')
+        println "\t\t\t\tMonitoring is: ${monitoring}"
+        def queueNames = mfp.queues
+        println "\t\t\t\tQueues used in flow:"
+        queueNames.each { println "\t\t\t\t\t" + it }
+        def nodeNames = mfp.nodes
+        println "\t\t\t\tNodes used in flow:"
+        nodeNames.each { MessageFlowProxy.Node node ->
+            println "\t\t\t\t\t" + node.name + " [ type: ${node.type} ${(node.type).startsWith('ComIbmMQ') ? ' ,queue: ' + node.properties.getProperty('queueName') : ''} ]"
 
+        }
+       }
+    }
+}
 def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
     def eventSourceMap = [:]
     def nodeNames = mfp.nodes
@@ -253,6 +300,7 @@ def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
             //eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
             // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
         }
+      
     }
     return eventSourceMap
 }
