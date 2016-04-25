@@ -21,6 +21,7 @@ cli.with
             s(longOpt: 'sources', 'eventsources=eventname key-value for generating events, mandatory for command profile, can be repeated multiple times.', args: 2, valueSeparator: '=', argName: 'SOURCES', required: false)
             ap(longOpt: 'app', 'The application name, note that you must specify eg as well using this option.', args: 1, argName: 'app', required: false)
             a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is enabling MQInputNodes with transaction.start with payload and configured but disabled MQOutputNodes terminal.in with payload.', args: 0, argName: 'AUTO', required: false)
+            t(longOpt: 'transfer', 'If the created profiles should be transferd to remote location, with ssh. Configuration from application.properties', args: 1, argName: 'TRANSFER', required: false)
         }
 def opt = cli.parse(args)
 if (!opt || opt.h) {
@@ -39,6 +40,7 @@ String applicationName = opt.ap ?: null
 def sources = opt.s ?: null
 String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
+String transfer = opt.t ?:null
 
 BrokerConnectionParameters bcp
 
@@ -145,12 +147,33 @@ if (command == Command.list) {
     } else {
       createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources)
     }
+    if (transfer) {
+      transferMonitoring(msgFlowName, transfer, workDirName)
+    }
 
 } else {
     println "not implemented yet"
     return
 }
+def transferMonitoring(String nameOfDir, String password, String sourceDir){
+    println "Transfer to remote location"
+    def filter = new File('../config/application.properties')
+    def props = new java.util.Properties()
+    props.load(new FileInputStream(filter))
+    def config = new ConfigSlurper().parse(props)
 
+    def transferCommand = config.transfer.user + '@' + config.transfer.host + ':' + config.transfer.dir
+    def ant = new AntBuilder()
+    ant.scp(
+            todir:transferCommand,
+            trust: true,
+            password: password){
+        fileset(dir:sourceDir) {
+            include(name: '/' + nameOfDir +'/')
+        }
+    }
+
+}
 def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources) {
     String exportFileName = "%CD%\\exported-" + profileXmlFileName
 
