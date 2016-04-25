@@ -1,0 +1,1 @@
+mqsichangeflowmonitoring ${brokerName} -e ${egName} -f ${msgFlowName} -i disable -s "${outputEventSources}" -k ${applicationName}
