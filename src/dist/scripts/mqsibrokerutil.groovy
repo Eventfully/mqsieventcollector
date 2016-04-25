@@ -21,6 +21,7 @@ cli.with
             w(longOpt: 'workdir', 'The working directory for generating output files, defaults to current directory', args: 1, argName: 'WORKDIR', required: false)
             s(longOpt: 'sources', 'eventsources=eventname key-value for generating events, mandatory for command profile, can be repeated multiple times.', args: 2, valueSeparator: '=', argName: 'SOURCES', required: false)
             a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is enabling MQInputNodes with transaction.start with payload and configured but disabled MQOutputNodes terminal.in with payload.', args: 0, argName: 'AUTO', required: false)
+            t(longOpt: 'transfer', 'If the creeated profiles should be transferd to remote location', args: 1, argName: 'TRANSFER', required: false)
         }
 def opt = cli.parse(args)
 if (!opt || opt.h) {
@@ -38,7 +39,7 @@ String msgFlowName = opt.f ?: null
 def sources = opt.s ?: null
 String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
-
+String transfer = opt.t ?:null
 BrokerConnectionParameters bcp
 
 if (brokerFile) {
@@ -86,6 +87,7 @@ if (command == Command.list) {
 } else if (command == Command.profile) {
     String profile = null
     def outputEventSources
+    def allFlows =[]
     if (sources) {
         def sourceMap = opt.ss.toSpreadMap()
         sourceMap.each { k, v -> println k + " " + v }
@@ -98,28 +100,81 @@ if (command == Command.list) {
         Map sourceMQOutputMap = createFlowOutputMQEventSourcesMap(mfp)
         outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
         profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
+    } else if (autoCreateProfile && egName && !msgFlowName) {
+        ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
+        assert egp
+        allFlows.add('test')
+        egp.getMessageFlows().each { MessageFlowProxy mfp ->
+        
+          MessageFlowProxy mfps = egp.getMessageFlowByName(mfp.name)
+          def sourceMQInputMap = createFlowInputMQEventSourcesMap(mfps)
+          Map sourceMQOutputMap = createFlowOutputMQEventSourcesMap(mfps)
+          
+          outputEventSources = sourceMQOutputMap.collect { it.key }.join(',')
+          profile = MonitoringProfileFactory.newProfile(sourceMQInputMap, sourceMQOutputMap)
+        
+          File outputDir = new File(workDirName + "/${mfp.name}")
+          outputDir.deleteDir()
+          outputDir.mkdir()
+          String xmlProfileFileName = "${mfp.name}-profile.xml"
+          File outputProfileFile = new File(outputDir, xmlProfileFileName)
+          outputProfileFile.setText(profile, "UTF-8")
+          println "profile xml created: ${outputProfileFile}"
+
+          println "creating mqsicommand files"
+          createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, mfp.name, xmlProfileFileName, outputEventSources)
+          if (transfer) {
+            transferMonitoring(mfp.name, transfer, workDirName)
+          }
+        }
+        
+        
+    
     } else {
         println "Wrong arguments supplied for profile."
         cli.usage()
         return
     }
+    
+    if (!allFlows) {
+      println profile
+      File outputDir = new File(workDirName + "/${msgFlowName}")
+      outputDir.deleteDir()
+      outputDir.mkdir()
+      String xmlProfileFileName = "${msgFlowName}-profile.xml"
+      File outputProfileFile = new File(outputDir, xmlProfileFileName)
+      outputProfileFile.setText(profile, "UTF-8")
+      println "profile xml created: ${outputProfileFile}"
 
-    println profile
-    File outputDir = new File(workDirName + "/${msgFlowName}")
-    outputDir.deleteDir()
-    outputDir.mkdir()
-    String xmlProfileFileName = "${msgFlowName}-profile.xml"
-    File outputProfileFile = new File(outputDir, xmlProfileFileName)
-    outputProfileFile.setText(profile, "UTF-8")
-    println "profile xml created: ${outputProfileFile}"
-
-    println "creating mqsicommand files"
-    createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources)
+      println "creating mqsicommand files"
+      createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources)
+    }
+    
 
 } else {
     println "not implemented yet"
     return
 }
+def transferMonitoring(String nameOfDir, String password, String sourceDir){
+    println "Transfer to remote location"
+    def filter = new File('../config/application.properties')
+    def props = new java.util.Properties()
+    props.load(new FileInputStream(filter))
+    def config = new ConfigSlurper().parse(props)
+
+    def transferCommand = config.transfer.user + '@' + config.transfer.host + ':' + config.transfer.dir
+    def ant = new AntBuilder()
+    ant.scp(
+            todir:transferCommand,
+            trust: true,
+            password: password){
+        fileset(dir:sourceDir) {
+            include(name: '/' + nameOfDir +'/')
+        }
+    }
+
+}
+
 
 def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources) {
     String exportFileName = "%CD%\\exported-" + profileXmlFileName
@@ -143,13 +198,13 @@ def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, Stri
                          "enableMQOutputEvents.template",
                          "disableMQOutputEvents.template"]
 
-    String templateDirName = System.properties.getProperty('user.dir') + "/scripts/templates"
+    String templateDirName = System.properties.getProperty('user.dir') + "/templates"
 
     templateFiles.each { templateFileName ->
         File templateFile = new File(templateDirName, templateFileName)
         def engine = new GStringTemplateEngine()
         def activeTemplate = engine.createTemplate(templateFile).make(binding)
-        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "cmd"))
+        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "sh"))
         ouputFile.text = activeTemplate.toString()
     }
 }
@@ -224,9 +279,9 @@ class MonitoringProfileFactory {
 
     //static String xmlProfile = '''<profile:monitoringProfile xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile" profile:version="2.0"><% sources.each { %><profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="${it.enabled}"><profile:eventPointDataQuery><profile:eventIdentity><profile:eventName profile:literal="${it.eventName}"/></profile:eventIdentity><profile:eventCorrelation><profile:localTransactionId profile:sourceOfId="automatic"/><profile:parentTransactionId profile:sourceOfId="automatic"/><profile:globalTransactionId profile:sourceOfId="automatic"/></profile:eventCorrelation><profile:eventFilter profile:queryText="true()"/><profile:eventUOW profile:unitOfWork="messageFlow"/></profile:eventPointDataQuery><profile:applicationDataQuery></profile:applicationDataQuery><profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}" profile:encoding="${it.bitstreamEncoding}"/></profile:eventSource><% } %></profile:monitoringProfile>'''
 
-    static String templateDirName = System.properties.getProperty('user.dir') + "/scripts/templates"
+    static String templateDirName = System.properties.getProperty('user.dir') + "/templates"
 
-        File templateFile = new File(templateDirName, templateFileName)
+    File templateFile = new File(templateDirName, templateFileName)
     static String xmlProfile = new File(templateDirName, "defaultMonitoringProfile.xml").getText("UTF-8")
 
     static String newProfile(def inputSources, def outputSources) {
@@ -238,7 +293,7 @@ class MonitoringProfileFactory {
             expandoSources.add(new Expando(eventSource: key, eventName: value, enabled: true, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
         }
         outputSources.each { key, value ->
-            expandoSources.add(new Expando(eventSource: key, eventName: value, enabled: false, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
+            expandoSources.add(new Expando(eventSource: key, eventName: value, enabled: true, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
         }
 
         def binding = [sources: expandoSources]
