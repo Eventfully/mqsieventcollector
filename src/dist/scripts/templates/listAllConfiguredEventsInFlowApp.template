@@ -1,0 +1,1 @@
+mqsireportflowmonitoring ${brokerName} -n -e ${egName} -f ${msgFlowName} -k ${applicationName}
