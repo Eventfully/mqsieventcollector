@@ -24,6 +24,10 @@ The project is built using Gradle. As long as you have a JRE on your path you ca
 bundled gradle wrapper instead (gradlew on Linux or gradlew.bat on Windows). It will download an embedded
 gradle jar-file and run so you don't need to install anything.
 
+## IIB10
+When using IIB10, an environment varible with the name IIB10_INSTALL_PATH must be set to the installtion path of IIB10. 
+For example: C:\Program Files\IBM\IIB\10.0.0.X\. This will copy the new IntegrationApi.jar to the installation. 
+
 ### Build
 Use `gradlew installApp` or `gradlew distZip` to build.
 installApp does a local install under build/install directory
