@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IntegrationNodeConnectionParameters xmlns="http://www.ibm.com/xmlns/prod/websphere/iib/8/IntegrationNodeConnectionParameters" Version="10.0.0" 
+	host="localhost" listenerPort="4415" integrationNodeName="BK_TEST" 
+	userName="" password="" useSsl="false" 
+	sslTrustStorePassword="password" sslTrustStorePath="c:\keystore\my_keystore.jks" />

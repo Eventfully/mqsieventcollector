@@ -22,6 +22,8 @@ cli.with
             ap(longOpt: 'app', 'The application name, note that you must specify eg as well using this option.', args: 1, argName: 'app', required: false)
             a(longOpt: 'auto', 'Auto create a monitoring profile for the flow in eg specified by -m -e, default is enabling MQInputNodes with transaction.start with payload and configured but disabled MQOutputNodes terminal.in with payload.', args: 0, argName: 'AUTO', required: false)
             t(longOpt: 'transfer', 'If the created profiles should be transferd to remote location, with ssh. Configuration from application.properties', args: 1, argName: 'TRANSFER', required: false)
+			u(longOpt: 'UNIX', 'Default all files are saved as .cmd, use this flag to save as .sh', args: 0, argName: 'UNIX', required: false)
+			
         }
 def opt = cli.parse(args)
 if (!opt || opt.h) {
@@ -40,24 +42,29 @@ String applicationName = opt.ap ?: null
 def sources = opt.s ?: null
 String workDirName = opt.w ?: System.properties.getProperty('user.dir')
 boolean autoCreateProfile = opt.a
+boolean environment = opt.u
 String transfer = opt.t ?:null
 
 BrokerConnectionParameters bcp
 
+println "INFO: hostname: $hostname port: $port" 
 if (brokerFile) {
     println "Connect using .broker file: " + brokerFile
-    bcp = new MQPropertyFileBrokerConnectionParameters(brokerFile)
+    bcp = new IntegrationNodeConnectionParameters(brokerFile)
+
+} else if (hostname && port && !qmgr) {
+    println "Connect using hostname and webgui port arguments"
+    bcp = new IntegrationNodeConnectionParameters(hostname, port)
+	
 } else if (hostname && port && qmgr) {
-    println "Connect using hostname, port and qmgr arguments"
+	println "Connect using hostname, port and queue manager arguments"
     bcp = new MQBrokerConnectionParameters(hostname, port, qmgr)
-} else {
-    println "You must specify either the [ -b | --brokername ] or [ -f | --brokerfile ] or all of [ -p, -q, -i ]"
-    return
+	
 }
 
 if (command == Command.profile) {
     if (!(sources || autoCreateProfile)) {
-        println "For the create profile option you must either specify the -a or -s [eventSrc:eventName] options as well."
+        println "For the create profile option you must either specify the -a or -s 'eventSrc=eventName' options as well."
         return
     }
 }
@@ -105,10 +112,18 @@ if (command == Command.list) {
 } else if (command == Command.profile) {
     String profile = null
     def outputEventSources
-    if (sources) {
-        def sourceMap = opt.ss.toSpreadMap()
+    if (sources && !autoCreateProfile) {
+	    def sourceMap = opt.ss.toSpreadMap()
         sourceMap.each { k, v -> println k + " " + v }
-        profile = MonitoringProfileFactory.newProfile(sourceMap)
+        profile = MonitoringProfileFactory.newSourceProfile(sourceMap)
+	} else if (sources && autoCreateProfile && msgFlowName && egName && applicationName) {
+		ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
+        assert egp
+        ApplicationProxy app = egp.getApplicationByName(applicationName)
+        MessageFlowProxy mfp = app.getMessageFlowByName(msgFlowName)
+		def sourceMap = createFlowInputAllEventSourcesMap(mfp)
+		profile = MonitoringProfileFactory.newSourceProfile(sourceMap)
+		
     } else if (autoCreateProfile && msgFlowName && egName && !applicationName) {
         ExecutionGroupProxy egp = proxy.getExecutionGroupByName(egName)
         assert egp
@@ -143,9 +158,9 @@ if (command == Command.list) {
 
     println "creating mqsicommand files"
     if (applicationName) {
-      createMqsiCommandFilesForApplicationsUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources, applicationName)
+      createMqsiCommandFilesForApplicationsUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources, applicationName, environment)
     } else {
-      createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources)
+      createMqsiCommandFilesUsingTemplates(outputDir, brokerName, egName, msgFlowName, xmlProfileFileName, outputEventSources, environment)
     }
     if (transfer) {
       transferMonitoring(msgFlowName, transfer, workDirName)
@@ -174,7 +189,7 @@ def transferMonitoring(String nameOfDir, String password, String sourceDir){
     }
 
 }
-def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources) {
+def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources, Boolean type) {
     String exportFileName = "%CD%\\exported-" + profileXmlFileName
 
     def binding = ["brokerName"        : brokerName,
@@ -197,16 +212,16 @@ def createMqsiCommandFilesUsingTemplates(File outputDir, String brokerName, Stri
                          "disableMQOutputEvents.template"]
 
     String templateDirName = System.properties.getProperty('user.dir') + "/templates"
-
+	def envType = type ? 'sh' : 'cmd'
     templateFiles.each { templateFileName ->
         File templateFile = new File(templateDirName, templateFileName)
         def engine = new GStringTemplateEngine()
         def activeTemplate = engine.createTemplate(templateFile).make(binding)
-        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "cmd"))
+        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", envType))
         ouputFile.text = activeTemplate.toString()
     }
 }
-def createMqsiCommandFilesForApplicationsUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources, String applicationName) {
+def createMqsiCommandFilesForApplicationsUsingTemplates(File outputDir, String brokerName, String egName, String msgFlowName, String profileXmlFileName, String outputEventSources, String applicationName, Boolean type) {
     String exportFileName = "%CD%\\exported-" + profileXmlFileName
 
     def binding = ["brokerName"        : brokerName,
@@ -230,12 +245,13 @@ def createMqsiCommandFilesForApplicationsUsingTemplates(File outputDir, String b
                          "disableMQOutputEventsApp.template"]
 
     String templateDirName = System.properties.getProperty('user.dir') + "/templates"
-
+	def envType = type ? 'sh' : 'cmd'
+	
     templateFiles.each { templateFileName ->
         File templateFile = new File(templateDirName, templateFileName)
         def engine = new GStringTemplateEngine()
         def activeTemplate = engine.createTemplate(templateFile).make(binding)
-        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", "cmd"))
+        File ouputFile = new File(outputDir, templateFileName.replaceFirst("template", envType))
         ouputFile.text = activeTemplate.toString()
     }
 }
@@ -269,6 +285,7 @@ def displayAppFlowInExecutionGroup(ExecutionGroupProxy egp, String applicationNa
 
 def displayFlowDetails(MessageFlowProxy mfp) {
     if (mfp.isRunning()) {
+	
         def monitoring = mfp.getRuntimeProperty('This/monitoring')
         println "\t\t\t\tMonitoring is: ${monitoring}"
         def queueNames = mfp.queues
@@ -313,6 +330,23 @@ def displayAppFlowDetails(ApplicationProxy app, String msgFlowName) {
        }
     }
 }
+def createFlowInputAllEventSourcesMap(MessageFlowProxy mfp) {
+    def eventSourceMap = [:]
+    def nodeNames = mfp.nodes
+    nodeNames.each { MessageFlowProxy.Node node ->
+        
+            println "\tFound node: " + node.name + " type: " + node.type 
+            eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
+            //eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
+            // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
+        
+      
+    }
+	println eventSourceMap
+    return eventSourceMap
+}
+
+
 def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
     def eventSourceMap = [:]
     def nodeNames = mfp.nodes
@@ -325,6 +359,7 @@ def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
         }
       
     }
+	println eventSourceMap
     return eventSourceMap
 }
 
@@ -337,6 +372,7 @@ def createFlowOutputMQEventSourcesMap(MessageFlowProxy mfp) {
             eventSourceMap.put("${node.name}.terminal.in", "${node.name}.Out")
         }
     }
+	println eventSourceMap
     return eventSourceMap
 }
 
@@ -354,7 +390,8 @@ class MonitoringProfileFactory {
 
     File templateFile = new File(templateDirName, templateFileName)
     static String xmlProfile = new File(templateDirName, "defaultMonitoringProfile.xml").getText("UTF-8")
-
+	static String xmlNewProfile = new File(templateDirName, "defaultNewMonitoringProfile.xml").getText("UTF-8")
+	
     static String newProfile(def inputSources, def outputSources) {
         GStringTemplateEngine engine = new GStringTemplateEngine()
 
@@ -369,6 +406,19 @@ class MonitoringProfileFactory {
 
         def binding = [sources: expandoSources]
         def template = engine.createTemplate(xmlProfile).make(binding)
+        return template.toString()
+    }
+	
+	static String newSourceProfile(def inputSources) {
+        GStringTemplateEngine engine = new GStringTemplateEngine()
+
+        def expandoSources = []
+        inputSources.each { key, value ->
+            expandoSources.add(new Expando(eventSource: key, eventName: value, enabled: true, bitstreamEncoding: BitstreamEncoding.base64Binary, bitstreamContent: BitstreamContent.all))
+        }
+      
+        def binding = [sources: expandoSources]
+        def template = engine.createTemplate(xmlNewProfile).make(binding)
         return template.toString()
     }
 }

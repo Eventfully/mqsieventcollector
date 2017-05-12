@@ -1,0 +1,21 @@
+<profile:monitoringProfile
+        xmlns:profile="http://www.ibm.com/xmlns/prod/websphere/messagebroker/6.1.0.3/monitoring/profile"
+        profile:version="2.0"><% sources.each { %>
+    <profile:eventSource profile:eventSourceAddress="${it.eventSource}" profile:enabled="${it.enabled}">
+        <profile:eventPointDataQuery>
+            <profile:eventIdentity>
+                <profile:eventName profile:literal="${it.eventName}"/>
+            </profile:eventIdentity>
+            <profile:eventCorrelation>
+                <profile:localTransactionId profile:sourceOfId="automatic"/>
+                <profile:parentTransactionId profile:sourceOfId="automatic"/>
+                <profile:globalTransactionId profile:sourceOfId="automatic"/>
+            </profile:eventCorrelation>
+            <profile:eventFilter profile:queryText="true()"/>
+            <profile:eventUOW profile:unitOfWork="messageFlow"/>
+        </profile:eventPointDataQuery>
+        <profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}"
+                                    profile:encoding="${it.bitstreamEncoding}"/>
+    </profile:eventSource>
+    <% } %>
+</profile:monitoringProfile>
