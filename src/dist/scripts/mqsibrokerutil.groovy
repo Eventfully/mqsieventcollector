@@ -353,7 +353,7 @@ def createFlowInputMQEventSourcesMap(MessageFlowProxy mfp) {
     nodeNames.each { MessageFlowProxy.Node node ->
         if (node.type == 'ComIbmMQInputNode') {
             println "\tFound MQ input node: " + node.name + " with queue: " + node.properties.getProperty('queueName')
-            eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
+            eventSourceMap.put("${node.name}.terminal.out", "${node.name}.Start")
             //eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
             // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
         }

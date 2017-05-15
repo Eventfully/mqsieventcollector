@@ -14,6 +14,7 @@
             <profile:eventFilter profile:queryText="true()"/>
             <profile:eventUOW profile:unitOfWork="messageFlow"/>
         </profile:eventPointDataQuery>
+		<profile:applicationDataQuery/>
         <profile:bitstreamDataQuery profile:bitstreamContent="${it.bitstreamContent}"
                                     profile:encoding="${it.bitstreamEncoding}"/>
     </profile:eventSource>
