@@ -336,7 +336,7 @@ def createFlowInputAllEventSourcesMap(MessageFlowProxy mfp) {
     nodeNames.each { MessageFlowProxy.Node node ->
         
             println "\tFound node: " + node.name + " type: " + node.type 
-            eventSourceMap.put("${node.name}.transaction.Start", "${node.name}.Start")
+            eventSourceMap.put("${node.name}.terminal.out", "${node.name}.Start")
             //eventSourceMap.put("${node.name}.transaction.End", "${node.name}.End")
             // eventSourceMap.put("${node.name}.transaction.Rollback", "${node.name}.Rollback")
         
